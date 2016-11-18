@@ -1,5 +1,7 @@
 .ipynb_checkpoints
 *.h5
 models
+data
 *.swp
 *.p
+*.pickle

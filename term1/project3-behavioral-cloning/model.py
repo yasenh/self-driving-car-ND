@@ -5,9 +5,10 @@ from keras.layers import Flatten, Dense, Convolution2D, Activation, MaxPooling2D
 from keras.models import Model, Sequential
 import numpy as np
 import pickle
+import json
 
-img_h = 160
-img_w = 320
+img_h = 32
+img_w = 64
 n_channel = 3
 
 #Get back the convolutional part of a VGG network trained on ImageNet
@@ -31,15 +32,20 @@ base_model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
                         border_mode = 'valid',
                         input_shape = input_shape))
 base_model.add(Activation('relu'))
+base_model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                        border_mode = 'valid',
+                        input_shape = input_shape))
+base_model.add(Activation('relu'))
 base_model.add(MaxPooling2D(pool_size=pool_size))
-base_model.add(Dropout(0.5))
+base_model.add(Dropout(0.25))
 
 x = base_model.output
 #Add the fully-connected layers
 x = Flatten(name='flatten')(x)
-x = Dense(4096, activation='relu', name='fc1')(x)
-x = Dense(4096, activation='relu', name='fc2')(x)
+x = Dense(1024, activation='relu', name='fc1')(x)
+x = Dense(1024, activation='relu', name='fc2')(x)
 predictions = Dense(1, activation='sigmoid', name='predictions')(x)
+#predictions = Dense(1, name='predictions')(x)
 
 #Create your own model
 model = Model(input = base_model.input, output = predictions)
@@ -49,10 +55,10 @@ model = Model(input = base_model.input, output = predictions)
 
 # first: train only the top layers (which were randomly initialized)
 # i.e. freeze all convolutional InceptionV3 layers
-for layer in base_model.layers:
-    layer.trainable = False
+# for layer in base_model.layers:
+#     layer.trainable = False
 
-model.compile(optimizer = 'adam', loss = 'mse', metrics=['accuracy'])
+model.compile(optimizer = 'adam', loss = 'mse')
 
 training_file = './train.p'
 with open(training_file, mode='rb') as f:
@@ -62,18 +68,20 @@ X_train, Y_train = train['features'], train['angles']
 X_train /= 255
 X_train -= 0.5
 
-
-nb_epoch = 5
+nb_epoch = 10
 batch_size = 32
-# fits the model on batches with real-time data augmentation:
+
+#print(Y_train)
+
+#fits the model on batches with real-time data augmentation:
 history = model.fit(X_train, Y_train,
                     batch_size = batch_size, nb_epoch = nb_epoch)
 
 # Save your model architecture as model.json, and the weights as model.h5.
 # serialize model to JSON
 model_json = model.to_json()
-with open("model.json", "w") as json_file:
-    json_file.write(model_json)
+with open('model.json', 'w') as f:
+    json.dump(model_json, f)
 # serialize weights to HDF5
 model.save_weights("model.h5")
 print("Saved model to disk")

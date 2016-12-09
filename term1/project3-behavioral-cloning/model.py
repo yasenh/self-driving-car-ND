@@ -1,7 +1,6 @@
-from keras.preprocessing import image
-from keras.layers import Flatten, Dense, Convolution2D, Activation, MaxPooling2D, Dropout
+from keras.layers import Flatten, Dense, Convolution2D, MaxPooling2D, Dropout
 from keras.models import Model, Sequential
-import numpy as np
+from sklearn.model_selection import train_test_split
 import pickle
 import json
 import os
@@ -36,10 +35,8 @@ x = Dense(50, activation='relu', name='fc3')(x)
 x = Dense(10, activation='relu', name='fc4')(x)
 predictions = Dense(1, name='predictions')(x)
 
-#Create your own model
 model = Model(input = base_model.input, output = predictions)
-
-#model.summary()
+model.summary()
 
 model.compile(optimizer = 'adam', loss = 'mse')
 
@@ -51,11 +48,17 @@ X_train, Y_train = train['features'], train['angles']
 X_train /= 255
 X_train -= 0.5
 
-nb_epoch = 3
-batch_size = 32
+train_features, test_features, train_labels, test_labels = train_test_split(
+    X_train,
+    Y_train,
+    test_size=0.20,
+    random_state=832289)
 
-#print(X_train)
-#print(Y_train)
+train_features, valid_features, train_labels, valid_labels = train_test_split(
+    train_features,
+    train_labels,
+    test_size=0.20,
+    random_state=832289)
 
 model_json_file = 'model.json'
 model_h5_file = 'model.h5'
@@ -66,10 +69,17 @@ if os.path.isfile(model_json_file):
 if os.path.isfile(model_h5_file):
     os.remove(model_h5_file)
 
+nb_epoch = 3
+batch_size = 32
 
 #fits the model on batches with real-time data augmentation:
-history = model.fit(X_train, Y_train,
-                    batch_size = batch_size, nb_epoch = nb_epoch)
+history = model.fit(train_features, train_labels,
+                    batch_size = batch_size, nb_epoch = nb_epoch,
+                    validation_data=(valid_features, valid_labels))
+
+score = model.evaluate(test_features, test_labels)
+print('Test score:', score[0])
+print('Test accuracy:', score[1])
 
 # Save your model architecture as model.json, and the weights as model.h5.
 # serialize model to JSON

@@ -6,33 +6,25 @@ import pickle
 import json
 import os
 
-img_h = 32
-img_w = 64
+img_h = 64
+img_w = 128
 n_channel = 3
 
 # size of pooling area for max pooling
 pool_size = (2, 2)
-# convolution kernel size
-kernel_size = (3, 3)
 input_shape = (img_h, img_w, 3)
 
 base_model = Sequential()
-#model.add(Lambda(lambda x: x/127.5 - 1.))
-base_model.add(Convolution2D(24, kernel_size[0], kernel_size[1],
-                        border_mode = 'valid',
+base_model.add(Convolution2D(24, 5, 5,
+                        activation = 'relu',
                         input_shape = input_shape))
-base_model.add(Activation('relu'))
-base_model.add(MaxPooling2D(pool_size=pool_size))
-base_model.add(Convolution2D(36, kernel_size[0], kernel_size[1],
-                        border_mode = 'valid',
-                        input_shape = input_shape))
-base_model.add(Activation('relu'))
-base_model.add(MaxPooling2D(pool_size=pool_size))
-base_model.add(Convolution2D(48, kernel_size[0], kernel_size[1],
-                        border_mode = 'valid',
-                        input_shape = input_shape))
-base_model.add(Activation('relu'))
-base_model.add(MaxPooling2D(pool_size=pool_size))
+base_model.add(MaxPooling2D(pool_size = pool_size))
+base_model.add(Convolution2D(48, 3, 3,
+                        activation = 'relu'))
+base_model.add(MaxPooling2D(pool_size = pool_size))
+base_model.add(Convolution2D(96, 3, 3,
+                        activation = 'relu'))
+base_model.add(MaxPooling2D(pool_size = pool_size))
 base_model.add(Dropout(0.25))
 
 x = base_model.output
@@ -47,6 +39,8 @@ predictions = Dense(1, name='predictions')(x)
 #Create your own model
 model = Model(input = base_model.input, output = predictions)
 
+#model.summary()
+
 model.compile(optimizer = 'adam', loss = 'mse')
 
 training_file = './train.p'
@@ -57,7 +51,7 @@ X_train, Y_train = train['features'], train['angles']
 X_train /= 255
 X_train -= 0.5
 
-nb_epoch = 10
+nb_epoch = 3
 batch_size = 32
 
 #print(X_train)

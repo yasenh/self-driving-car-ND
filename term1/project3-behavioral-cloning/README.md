@@ -36,9 +36,9 @@ It contains 3 convolution layers with relu activation, 3 maxpooling layers behin
 
 Total params: 9563539
 
-![Training data sample 1](/data/center_2016_12_08_00_17_53_638.jpg)
-![Training data sample 2](/data/left_2016_12_08_00_19_15_709.jpg)
-![Training data sample 3](/data/right_2016_12_08_00_21_11_041.jpg)
+![Training data sample 1](https://github.com/yasenh/self-driving-car-ND/blob/master/term1/project3-behavioral-cloning/data/center_2016_12_08_00_17_53_638.jpg)
+![Training data sample 2](https://github.com/yasenh/self-driving-car-ND/blob/master/term1/project3-behavioral-cloning/data/left_2016_12_08_00_19_15_709.jpg)
+![Training data sample 3](https://github.com/yasenh/self-driving-car-ND/blob/master/term1/project3-behavioral-cloning/data/right_2016_12_08_00_21_11_041.jpg)
 
 
 ## Training set generator:

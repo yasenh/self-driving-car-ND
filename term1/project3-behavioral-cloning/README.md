@@ -36,6 +36,10 @@ It contains 3 convolution layers with relu activation, 3 maxpooling layers behin
 
 Total params: 9563539
 
+![Training data sample 1](/data/center_2016_12_08_00_17_53_638.jpg)
+![Training data sample 2](/data/left_2016_12_08_00_19_15_709.jpg)
+![Training data sample 3](/data/right_2016_12_08_00_21_11_041.jpg)
+
 
 ## Training set generator:
 1. Use "dataset_generator.py" to generate serialized training data. I use the center images as main data source, and in order to get more data, I add some offset (+-0.08 ~ 0.10) to the steering angel to work with left and right images. The idea is pretty strightforward, if the center one capture the similar images as what left or right one get in training, it means the vehicle is not straight on road, so we need some steering angle to make the car go back to right pose.

@@ -71,6 +71,7 @@ One more positive example using the same parameters but `pixels_per_cell = (4, 4
 ![alt text][image4]
 
 Some negetive examples:
+
 ![alt text][image5]
 ![alt text][image6]
 ![alt text][image7]

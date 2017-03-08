@@ -1,0 +1,4 @@
+.ipynb_checkpoints
+.idea
+cmake-build-debug
+__pycache__

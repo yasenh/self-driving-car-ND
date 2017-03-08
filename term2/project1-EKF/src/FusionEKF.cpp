@@ -17,20 +17,16 @@ FusionEKF::FusionEKF() {
     R_laser_ << 0.0225, 0,
                 0     , 0.0225;
 
-//    R_radar_ << 0.0225, 0     , 0,
-//            0     , 0.0225, 0,
-//            0     , 0     , 0.0225;
-
-    R_radar_ << 0.5, 0     , 0,
-            0     , 0.2, 0,
-            0     , 0     , 0.0225;
+    R_radar_ << 0.05    , 0     , 0,
+                0       , 0.05   , 0,
+                0       , 0     , 0.1;
 
     //measurement matrix
     H_laser_ = Eigen::MatrixXd(2, 4);
     H_radar_ = Eigen::MatrixXd(3, 4);
 
     H_laser_ << 1, 0, 0, 0,
-            0, 1, 0, 0;
+                0, 1, 0, 0;
 
     /**
     TODO:
@@ -41,7 +37,8 @@ FusionEKF::FusionEKF() {
 
     //state covariance matrix P
     ekf_.P_ = Eigen::MatrixXd(4, 4);
-    ekf_.P_ << 1, 0, 0, 0,
+    ekf_.P_ <<
+            1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1000, 0,
             0, 0, 0, 1000;
@@ -51,14 +48,15 @@ FusionEKF::FusionEKF() {
 
     //the initial transition matrix F_
     ekf_.F_ = Eigen::MatrixXd(4, 4);
-    ekf_.F_ << 1, 0, 1, 0,
+    ekf_.F_ <<
+            1, 0, 1, 0,
             0, 1, 0, 1,
             0, 0, 1, 0,
             0, 0, 0, 1;
 
     //set the acceleration noise components
-    noise_ax_ = 5;
-    noise_ay_ = 5;
+    noise_ax_ = 10;
+    noise_ay_ = 10;
 }
 
 /**

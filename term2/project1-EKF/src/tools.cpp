@@ -31,7 +31,7 @@ Eigen::VectorXd Tools::CalculateRMSE(const std::vector<Eigen::VectorXd> &estimat
 }
 
 Eigen::MatrixXd Tools::CalculateJacobian(const Eigen::VectorXd& x_state) {
-    Eigen::MatrixXd Hj(3,4);
+    Eigen::MatrixXd Hj = Eigen::MatrixXd::Zero(3,4);
     //recover state parameters
     float px = x_state(0);
     float py = x_state(1);

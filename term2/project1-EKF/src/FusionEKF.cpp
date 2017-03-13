@@ -18,7 +18,7 @@ FusionEKF::FusionEKF() {
                 0     , 0.0225;
 
     R_radar_ << 0.05    , 0     , 0,
-                0       , 0.05   , 0,
+                0       , 0.25  , 0,
                 0       , 0     , 0.1;
 
     //measurement matrix

@@ -7,7 +7,7 @@ Tools::~Tools() {}
 
 Eigen::VectorXd Tools::CalculateRMSE(const std::vector<Eigen::VectorXd> &estimations, const std::vector<Eigen::VectorXd> &ground_truth) {
     Eigen::VectorXd rmse(4);
-    rmse << 0,0,0,0;
+    rmse << 0, 0, 0, 0;
     // check the validity of the following inputs:
     //  * the estimation vector size should not be zero
     //  * the estimation vector size should equal ground truth vector size
@@ -23,7 +23,7 @@ Eigen::VectorXd Tools::CalculateRMSE(const std::vector<Eigen::VectorXd> &estimat
         rmse += residual;
     }
     //calculate the mean
-    rmse = rmse/estimations.size();
+    rmse = rmse / estimations.size();
     //calculate the squared root
     rmse = rmse.array().sqrt();
     //return the result

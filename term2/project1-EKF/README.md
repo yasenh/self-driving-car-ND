@@ -33,3 +33,23 @@ If you'd like to generate your own radar and lidar data, see the
 [utilities repo](https://github.com/udacity/CarND-Mercedes-SF-Utilities) for
 Matlab scripts that can generate additional data.
 
+[//]: # (Image References)
+[image1]: ./data/result1-1.png
+[image2]: ./data/result1-2.png
+[image3]: ./data/result2-1.png
+[image4]: ./data/result2-2.png
+
+## Result
+* Input - sample-laser-radar-measurement-data-1.txt
+Accuracy - RMSE:
+[px, py, vx, vy] = [0.0702115, 0.0681311, 0.548794, 0.558757]
+
+![alt text][image1]
+![alt text][image2]
+
+* Input - sample-laser-radar-measurement-data-2.txt
+Accuracy - RMSE:
+[px, py, vx, vy] = [0.182924, 0.193127, 0.482862, 0.839444]
+
+![alt text][image3]
+![alt text][image4]

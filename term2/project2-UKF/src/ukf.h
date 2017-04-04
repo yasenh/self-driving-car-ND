@@ -113,6 +113,7 @@ public:
     void SigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
     void PredictMeanAndCovariance();
     void PredictRadarMeasurement();
+    void PredictLaserMeasurement();
     void UpdateState(const VectorXd &z);
 
 private:

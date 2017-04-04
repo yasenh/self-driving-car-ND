@@ -14,7 +14,7 @@ UKF::UKF() {
     is_initialized_ = false;
 
     // if this is false, laser measurements will be ignored (except during init)
-    use_laser_ = false;
+    use_laser_ = true;
 
     // if this is false, radar measurements will be ignored (except during init)
     use_radar_ = true;
@@ -32,13 +32,16 @@ UKF::UKF() {
     x_ = VectorXd(n_x_);
 
     // initial covariance matrix
-    P_ = MatrixXd(n_x_, n_x_);
+//    P_ = MatrixXd(n_x_, n_x_);
 
-    P_ <<    0.0043,   -0.0013,    0.0030,   -0.0022,   -0.0020,
-            -0.0013,    0.0077,    0.0011,    0.0071,    0.0060,
-             0.0030,    0.0011,    0.0054,    0.0007,    0.0008,
-            -0.0022,    0.0071,    0.0007,    0.0098,    0.0100,
-            -0.0020,    0.0060,    0.0008,    0.0100,    0.0123;
+//    P_ <<    0.0043,   -0.0013,    0.0030,   -0.0022,   -0.0020,
+//            -0.0013,    0.0077,    0.0011,    0.0071,    0.0060,
+//             0.0030,    0.0011,    0.0054,    0.0007,    0.0008,
+//            -0.0022,    0.0071,    0.0007,    0.0098,    0.0100,
+//            -0.0020,    0.0060,    0.0008,    0.0100,    0.0123;
+
+    P_ =  MatrixXd::Identity(n_x_, n_x_);
+
 
 
     // predicted sigma points matrix
@@ -54,38 +57,31 @@ UKF::UKF() {
     std_yawdd_ = 0.2;
 
     // Laser measurement noise standard deviation position1 in m
-    std_laspx_ = 0.15;
+    std_laspx_ = 0.05;
 
     // Laser measurement noise standard deviation position2 in m
-    std_laspy_ = 0.15;
+    std_laspy_ = 0.05;
 
     // Radar measurement noise standard deviation radius in m
     std_radr_ = 0.3;
 
     // Radar measurement noise standard deviation angle in rad
-    std_radphi_ = 0.03;
+    std_radphi_ = 0.0175;
 
     // Radar measurement noise standard deviation radius change in m/s
-    std_radrd_ = 0.3;
-
-    //set measurement dimension, radar can measure r, phi, and r_dot
-    n_z_ = 3;
-
-    //create matrix for sigma points in measurement space
-    Zsig_ = MatrixXd(n_z_, 2 * n_aug_ + 1);
-
-    //mean predicted measurement
-    z_pred_ = VectorXd(n_z_);
-
-    //measurement covariance matrix S
-    S_ = MatrixXd(n_z_, n_z_);
+    std_radrd_ = 0.1;
 
     //measurement noise covariance matrix
-    R_radar_ = MatrixXd(n_z_, n_z_);
+    R_radar_ = MatrixXd(3, 3);
     R_radar_ <<     std_radr_ * std_radr_, 0                         , 0,
                     0                    , std_radphi_ * std_radphi_ , 0,
                     0                    , 0                         , std_radrd_*std_radrd_;
 
+    R_laser_ = MatrixXd(2, 2);
+    R_laser_ <<     std_laspx_ * std_laspx_, 0 ,
+                    0                      , std_laspy_ * std_laspy_ ;
+
+    NIS_radar_ = NIS_laser_ = 0;
 }
 
 UKF::~UKF() {}
@@ -150,14 +146,39 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
      * Update the state and covariance matrices.
      ****************************************************************************/
 
-    if (meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
-        PredictRadarMeasurement();
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+        //set measurement dimension, radar can measure r, phi, and r_dot
+        n_z_ = 3;
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+        //set measurement dimension, laser can measure px, py
+        n_z_ = 2;
+    }
 
+    //create matrix for sigma points in measurement space
+    Zsig_ = MatrixXd(n_z_, 2 * n_aug_ + 1);
+
+    //mean predicted measurement
+    z_pred_ = VectorXd(n_z_);
+
+    //measurement covariance matrix S
+    S_ = MatrixXd(n_z_, n_z_);
+
+
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+        PredictRadarMeasurement();
+        // update NIS
+        NIS_radar_ = (meas_package.raw_measurements_-z_pred_).transpose()*S_.inverse()*(meas_package.raw_measurements_-z_pred_);
+    }
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+        PredictLaserMeasurement();
+        // update NIS
+        NIS_laser_ = (meas_package.raw_measurements_-z_pred_).transpose()*S_.inverse()*(meas_package.raw_measurements_-z_pred_);
     }
 
     UpdateState(meas_package.raw_measurements_);
+
+
 
 }
 
@@ -173,9 +194,6 @@ void UKF::Prediction(double delta_t) {
     Complete this function! Estimate the object's location. Modify the state
     vector, x_. Predict sigma points, the state, and the state covariance matrix.
     */
-
-//    MatrixXd Xsig = MatrixXd(n_x_, 2 * n_x_ + 1);
-//    GenerateSigmaPoints(&Xsig);
 
     MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
     GenerateAugmentedSigmaPoints(&Xsig_aug);
@@ -344,7 +362,12 @@ void UKF::PredictRadarMeasurement() {
         // measurement model
         Zsig_(0,i) = sqrt(p_x*p_x + p_y*p_y);                        //r
         Zsig_(1,i) = atan2(p_y,p_x);                                 //phi
-        Zsig_(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);   //r_dot
+
+        if (Zsig_(0, i) <0.001) {
+            Zsig_(2, i) = (p_x * v1 + p_y * v2) / 0.001;        //r_dot
+        } else {
+            Zsig_(2, i) = (p_x * v1 + p_y * v2) / Zsig_(0, i);  //r_dot;
+        }
     }
 
 
@@ -366,9 +389,41 @@ void UKF::PredictRadarMeasurement() {
         S_ = S_ + weights_(i) * z_diff * z_diff.transpose();
     }
 
-
-
     S_ = S_ + R_radar_;
+}
+
+void UKF::PredictLaserMeasurement() {
+    //transform sigma points into measurement space
+    for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
+
+        // extract values for better readibility
+        double p_x = Xsig_pred_(0,i);
+        double p_y = Xsig_pred_(1,i);
+
+        // measurement model
+        Zsig_(0,i) = p_x;                        //px
+        Zsig_(1,i) = p_y;                        //py
+    }
+
+    z_pred_.fill(0.0);
+    for (int i=0; i < 2*n_aug_+1; i++) {
+        z_pred_ = z_pred_ + weights_(i) * Zsig_.col(i);
+    }
+
+
+    S_.fill(0.0);
+    for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
+        //residual
+        VectorXd z_diff = Zsig_.col(i) - z_pred_;
+
+        //angle normalization
+        while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+        while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+
+        S_ = S_ + weights_(i) * z_diff * z_diff.transpose();
+    }
+
+    S_ = S_ + R_laser_;
 }
 
 

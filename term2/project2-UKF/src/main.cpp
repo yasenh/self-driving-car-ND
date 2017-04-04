@@ -81,7 +81,10 @@ int main(int argc, char* argv[]) {
         // reads first element from the current line
         iss >> sensor_type;
 
-        if (sensor_type.compare("L") == 0 && ukf.use_laser_) {
+        if (sensor_type.compare("L") == 0) {
+            if (!ukf.use_laser_) {
+                continue;
+            }
             // laser measurement
             // read measurements at this timestamp
             meas_package.sensor_type_ = MeasurementPackage::LASER;
@@ -93,7 +96,10 @@ int main(int argc, char* argv[]) {
             iss >> timestamp;
             meas_package.timestamp_ = timestamp;
             measurement_pack_list.push_back(meas_package);
-        } else if (sensor_type.compare("R") == 0 && ukf.use_radar_) {
+        } else if (sensor_type.compare("R") == 0) {
+            if (!ukf.use_radar_) {
+                continue;
+            }
             // radar measurement
             // read measurements at this timestamp
             meas_package.sensor_type_ = MeasurementPackage::RADAR;

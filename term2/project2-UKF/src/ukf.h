@@ -109,17 +109,30 @@ public:
     void UpdateRadar(MeasurementPackage meas_package);
 
 
-
-    //void GenerateSigmaPoints(MatrixXd* Xsig_out);
     void GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out);
-    void SigmaPointPrediction(double delta_t);
+    void SigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
     void PredictMeanAndCovariance();
-    void PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out);
-    void UpdateState(VectorXd* x_out, MatrixXd* P_out);
+    void PredictRadarMeasurement();
+    void UpdateState(const VectorXd &z);
 
 private:
     // previous timestamp
     long previous_timestamp_;
+
+    //set measurement dimension, radar can measure r, phi, and r_dot
+    int n_z_;
+
+    //create matrix for sigma points in measurement space
+    MatrixXd Zsig_;
+
+    //mean predicted measurement
+    VectorXd z_pred_;
+
+    //measurement covariance matrix S
+    MatrixXd S_;
+
+    //measurement noise covariance matrix
+    MatrixXd R_laser_, R_radar_;
 
 };
 

@@ -145,7 +145,8 @@ int main(int argc, char* argv[]) {
     out_file_ << "py_true" << "\t";
     out_file_ << "vx_true" << "\t";
     out_file_ << "vy_true" << "\t";
-    out_file_ << "NIS" << "\n";
+    out_file_ << "NIS_laser" << "\t";
+    out_file_ << "NIS_radar" << "\n";
 
 
     for (size_t k = 0; k < number_of_measurements; k++) {
@@ -182,8 +183,10 @@ int main(int argc, char* argv[]) {
 
         // output the NIS values
         if (measurement_pack_list[k].sensor_type_ == MeasurementPackage::LASER) {
-            out_file_ << ukf.NIS_laser_ << "\n";
+            out_file_ << ukf.NIS_laser_ << "\t";
+            out_file_ << "N/A" << "\n";
         } else if (measurement_pack_list[k].sensor_type_ == MeasurementPackage::RADAR) {
+            out_file_ << "N/A" << "\t";
             out_file_ << ukf.NIS_radar_ << "\n";
         }
 

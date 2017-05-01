@@ -16,8 +16,10 @@ double rad2deg(double x) { return x * 180 / pi(); }
 const double kMaxSteerValue = 1.0;
 const double kMinSteerValue = -1.0;
 
-const double kMaxThrottleValue = 0.6;
+const double kMaxThrottleValue = 1.0;
 const double kMinThrottleValue = -1.0;
+
+const double kMaxSpeed = 40;
 
 
 // Checks if the SocketIO event has JSON data.
@@ -42,16 +44,20 @@ int main() {
     PID pid_steer, pid_speed;
     // TODO: Initialize the pid variable.
 
+//    double Kp_steer = 0.1;
+//    double Ki_steer = 0.001;
+//    double Kd_steer = 0.8;
+
     double Kp_steer = 0.1;
     double Ki_steer = 0.001;
-    double Kd_steer = 0.8;
+    double Kd_steer = 1.0;
 
     pid_steer.Init(Kp_steer, Ki_steer, Kd_steer);
 
 
-    double Kp_speed = 0.4;
-    double Ki_speed = 0.1;
-    double Kd_speed = 0.8;
+    double Kp_speed = 0.7;
+    double Ki_speed = 0.0;
+    double Kd_speed = 0.1;
 
     pid_speed.Init(Kp_speed, Ki_speed, Kd_speed);
 
@@ -97,8 +103,15 @@ int main() {
                     if (throttle_value > kMaxThrottleValue) {
                         throttle_value = kMaxThrottleValue;
                     }
+                    else if (throttle_value <= 0 && speed <= 30) {
+                        throttle_value = 0.3;
+                    }
                     else if (throttle_value < kMinThrottleValue) {
                         throttle_value = kMinThrottleValue;
+                    }
+
+                    if (speed >= kMaxSpeed) {
+                        throttle_value = 0;
                     }
 
                     // DEBUG

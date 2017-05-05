@@ -49,7 +49,7 @@ The integral term accelerates the movement of the process towards setpoint and e
 
 The whole system, with the help of both steering PID controller and throttle PID controller, is able to handle the error between desired waypoint and actually position.
 
-*. Discusses how they chose the final hyperparameters (P, I, D coefficients).
+* Discusses how they chose the final hyperparameters (P, I, D coefficients).
 
 reference: https://robotics.stackexchange.com/questions/167/what-are-good-strategies-for-tuning-pid-loops
 

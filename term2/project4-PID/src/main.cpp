@@ -87,7 +87,7 @@ int main() {
                     */
 
                     pid_steer.UpdateError(cte);
-                    steer_value = -pid_steer.TotalError();
+                    steer_value = pid_steer.TotalError();
 
                     if (steer_value > kMaxSteerValue) {
                         steer_value = kMaxSteerValue;
@@ -98,7 +98,7 @@ int main() {
 
                     // no matter with the orientation, decrease speed if cte is too large
                     pid_speed.UpdateError(fabs(cte));
-                    throttle_value = 1.0 - pid_speed.TotalError();
+                    throttle_value = 1.0 + pid_speed.TotalError();
 
                     if (throttle_value > kMaxThrottleValue) {
                         throttle_value = kMaxThrottleValue;

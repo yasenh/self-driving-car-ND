@@ -27,6 +27,45 @@ Self-Driving Car Engineer Nanodegree Program
 3. Compile: `cmake .. && make`
 4. Run it: `./pid`. 
 
+## Reflection
+
+* Describes the effect of the P, I, D component of the PID algorithm in their implementation.
+
+The "P" control stands for proportion, means output value is directly proportional to input value (error). 
+
+However, the vehicle itself is a large integral link, which causes time delay. For example, the vehicle get close to center but will still keep running to the other side because of inertia, which may cause another side of error. 
+So it may bring large overshoot and frequently oscillation if only proportional link is applied. 
+That is, only the ”proportional” controller is often not enough, it only has the effect of amplification of the proportional term of the error magnitude, which is the need to add predictive link to predict error trend. 
+When the vehicle approach target, the control system should decrease the regulation intensity.
+ 
+The "D" control stand for derivative, which means output value is proportional to derivative of input signal. 
+In other words, the effect of suppressing should be zero or negative direction when the error approaches zero because the derivation is decreasing. 
+Thus, a proportional with derivative control system, the error suppression is possible to advance the control action to zero, or even negative, which can avoid large overshoot. 
+So for a larger inertia or lag-controlled object, proportional with derivative (PD) control system can improve the dynamics of system in the regulation processing.
+
+The "I" means integral, which accounts for past values of the error. 
+For example, if the current output is not sufficiently strong, the integral of the error will accumulate over time, and the controller will respond by applying a stronger action.
+The integral term accelerates the movement of the process towards setpoint and eliminates the "residual steady-state error" that occurs with a pure proportional controller.
+
+The whole system, with the help of both steering PID controller and throttle PID controller, is able to handle the error between desired waypoint and actually position.
+
+*. Discusses how they chose the final hyperparameters (P, I, D coefficients).
+
+reference: https://robotics.stackexchange.com/questions/167/what-are-good-strategies-for-tuning-pid-loops
+
+1. Set all gains to zero.
+2. Increase the P gain until the response to a disturbance is steady oscillation.
+3. Increase the D gain until the the oscillations go away (i.e. it's critically damped).
+4. Repeat steps 2 and 3 until increasing the D gain does not stop the oscillations.
+5. Set P and D to the last stable values.
+6. Increase the I gain until it brings you to the setpoint with the number of oscillations desired (normally zero but a quicker response can be had if you don't mind a couple oscillations of overshoot)
+
+I tried both manual tuning and twiddle, and noticed that manual tuning according to observation and experience usually provide better
+performance than twiddle. My experience is: 
+
+Firstly increase the P until vehicle oscillation, then decrease P gain a little bit, I multiply P by 0.8 normally.
+Then add some D gain until the overshoot decrease rapidly. Finally increase I gain to overcome steady error and play around with these parameters until the vehicle drive itself safely.
+
 [//]: # (Image References)
 [image1]: ./misc/Screenshot1.png
 [image2]: ./misc/Screenshot2.png

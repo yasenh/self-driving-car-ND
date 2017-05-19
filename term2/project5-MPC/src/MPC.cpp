@@ -104,8 +104,6 @@ public:
             AD<double> cte1 = vars[cte_start + i + 1];
             AD<double> epsi1 = vars[epsi_start + i + 1];
 
-            std::cout << x1 << " , " << y1 << std::endl;
-
             // The state at time t.
             AD<double> x0 = vars[x_start + i];
             AD<double> y0 = vars[y_start + i];
@@ -209,7 +207,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // NOTE: Feel free to change this to something else.
     for (size_t i = a_start; i < n_vars; i++) {
         vars_lowerbound[i] = -1.0;
-        vars_upperbound[i] = 0.3;
+        vars_upperbound[i] = 0.6;
     }
 
     // Lower and upper limits for the constraints
@@ -270,6 +268,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // Cost
     auto cost = solution.obj_value;
     std::cout << "Cost " << cost << std::endl;
+
+    prediction_x_.clear();
+    prediction_y_.clear();
+
+    for (size_t i = 1; i < N; i++) {
+        prediction_x_.push_back(solution.x[x_start + i]);
+        prediction_y_.push_back(solution.x[y_start + i]);
+    }
+
 
     // Return the first actuator values. The variables can be accessed with
     // `solution.x[i]`.

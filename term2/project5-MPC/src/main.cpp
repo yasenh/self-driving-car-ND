@@ -86,43 +86,76 @@ int main() {
                     // j[1] is the data JSON object
                     vector<double> ptsx = j[1]["ptsx"];
                     vector<double> ptsy = j[1]["ptsy"];
-
-                    // convert std::vetcor to Eigen::VectorXd
-                    Eigen::VectorXd ptsx_vec, ptsy_vec;
-                    ptsx_vec = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
-                    ptsy_vec = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
-
-                    Eigen::VectorXd coeffs = polyfit(ptsx_vec, ptsy_vec, 3);
-
                     double px = j[1]["x"];
                     double py = j[1]["y"];
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
 
+                    // The position information we get is based on global coordinate
+                    // we need to convert it to vehicle coordinate before fitting polynomials
+                    // in vehicle coordinate x = y = psi = 0
+                    // Reference: https://en.wikipedia.org/wiki/Rotation_matrix
+
+                    /**
+                     * Global Coordinate
+                     *    ^ y
+                     *    |
+                     *    |
+                     *    |
+                     *    |
+                     *    -----------> x
+                     */
+
+
+                    /**
+                     * Vehicle Coordinate
+                     * Recall that the x axis always points in the direction of the car’s heading and the y axis points to the left of the car.
+                     *                        ^ x_vehicle
+                     *                        |
+                     *                        |
+                     *                        |
+                     *                        |
+                     *   y_vehicle <-----------
+                     */
+
+                    /**
+                     *  If we fix the coordinate and rotate point (x,y), counter-clockwise through an angle θ is positive.
+                     *  However, the x-y axis is not fixed.
+                     *  Instead of rotate points, we could image we are rotating the x-y plane in this case.
+                     *  In other words we are rotating the (x,y) in other direction (clockwise) actually,
+                     *  so the rotation angle should be θ = -psi
+                     */
+
+                    vector<double> wp_x_vehicle, wp_y_vehicle;
+                    for(int i = 0; i < ptsx.size(); i++) {
+                        double x = ptsx[i] - px;
+                        double y = ptsy[i] - py;
+                        wp_x_vehicle.push_back(x * cos(-psi) - y * sin(-psi));
+                        wp_y_vehicle.push_back(x * sin(-psi) + y * cos(-psi));
+                    }
+
+                    // convert std::vetcor to Eigen::VectorXd
+                    Eigen::VectorXd wp_x_vehicle_vec, wp_y_vehicle_vec;
+                    wp_x_vehicle_vec = Eigen::VectorXd::Map(wp_x_vehicle.data(), wp_x_vehicle.size());
+                    wp_y_vehicle_vec = Eigen::VectorXd::Map(wp_y_vehicle.data(), wp_y_vehicle.size());
+
+                    Eigen::VectorXd coeffs = polyfit(wp_x_vehicle_vec, wp_y_vehicle_vec, 3);
+
+
                     // The cross track error is calculated by evaluating at polynomial at x, f(x)
                     // and subtracting y.
-                    double cte = polyeval(coeffs, px) - py;
+                    double cte = polyeval(coeffs, 0);
 
                     // epsi = psi - psi_desired
                     // psi_desired can be calculated as the tangential angle of the polynomial f evaluated at x
                     // arctan(f'(x))
                     // y = f(x) = c[0] + c[1] * x + c[2] * x^2 + c[3] * x^3
                     // derivative of c[0] + c[1] * x + c[2] * x^2 + c[3] * x^3 -> c[1] + 2 * c[2] * x + 3 * c[3] * x^2
-                    double psi_desired = atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * px * px);
-
-                    if (psi >= M_PI) {
-                        psi -= M_PI;
-                    }
-                    else if (psi <= -M_PI) {
-                        psi += M_PI;
-                    }
-
-                    double epsi = psi - psi_desired;
-
-                    std::cout << rad2deg(psi) << " - " << rad2deg(psi_desired) << " = " << rad2deg(epsi) << std::endl;
+                    // at point (0, 0) which is vehicle coordinate, x = y = 0
+                    double epsi = -atan(coeffs[1]);
 
                     Eigen::VectorXd state(6);
-                    state << px, py, psi, v, cte, epsi;
+                    state << 0, 0, 0, v, cte, epsi;
 
                     /*
                     * Calculate steeering angle and throttle using MPC.
@@ -134,33 +167,25 @@ int main() {
                     double steer_value, throttle_value;
 
                     auto vars = mpc.Solve(state, coeffs);
-                    steer_value = vars[0];
+                    steer_value = -vars[0];
                     throttle_value = vars[1];
-                    
+
 
                     json msgJson;
                     msgJson["steering_angle"] = steer_value;
                     msgJson["throttle"] = throttle_value;
 
-                    //Display the MPC predicted trajectory
-                    vector<double> mpc_x_vals;
-                    vector<double> mpc_y_vals;
-
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Green line
 
-                    msgJson["mpc_x"] = mpc_x_vals;
-                    msgJson["mpc_y"] = mpc_y_vals;
-
-                    //Display the waypoints/reference line
-                    vector<double> next_x_vals;
-                    vector<double> next_y_vals;
+                    msgJson["mpc_x"] = mpc.GetPrectionX();
+                    msgJson["mpc_y"] = mpc.GetPrectionY();
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Yellow line
 
-                    msgJson["next_x"] = next_x_vals;
-                    msgJson["next_y"] = next_y_vals;
+                    msgJson["next_x"] = wp_x_vehicle;
+                    msgJson["next_y"] = wp_y_vehicle;
 
 
                     auto msg = "42[\"steer\"," + msgJson.dump() + "]";

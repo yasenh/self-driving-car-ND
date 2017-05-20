@@ -147,6 +147,13 @@ int main() {
                     wp_x_vehicle_vec = Eigen::VectorXd::Map(wp_x_vehicle.data(), wp_x_vehicle.size());
                     wp_y_vehicle_vec = Eigen::VectorXd::Map(wp_y_vehicle.data(), wp_y_vehicle.size());
 
+                    /**
+                      *  Implementation question 3 - Polynomial Fitting and MPC Preprocessing
+                      *
+                      *  First of all, we convert waypoints from global to local
+                      *  then we implement polynomial fitting in order 3
+                      */
+
                     Eigen::VectorXd coeffs = polyfit(wp_x_vehicle_vec, wp_y_vehicle_vec, 3);
 
                     // The cross track error is calculated by evaluating at polynomial at x, f(x)
@@ -161,10 +168,15 @@ int main() {
                     // at point (0, 0) which is vehicle coordinate, x = y = psi = 0
                     double epsi = -atan(coeffs[1]);
 
+                    /**
+                     *  Implementation question 4 - Model Predictive Control with Latency
+                     *
+                     *  This could easily be modeled by a simple dynamic system and incorporated into the vehicle model.
+                     */
+
                     // Because of the latency, the input of MPC should be compensated
 
                     double dt = kLatencyMs / 1000;
-                    // v: The current velocity in mph
                     double state_x = v * dt;
                     double state_y = 0;
                     double state_psi = v * steer_value / kLf * dt;
@@ -183,6 +195,21 @@ int main() {
                     * Both are in between [-1, 1].
                     *
                     */
+
+                    /**
+                     * Implementation question 4 - The Model
+                     * State [x,y,ψ,v] - vehicle position x, y, orientation and velocity in vehicle coordinate
+                     * Actuators: [δ,a] - steering angle and throttle value
+                     *
+                     * Update equations:
+                     * x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+                     * y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+                     * psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+                     * v_[t+1] = v[t] + a[t] * dt
+                     * cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+                     * epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+                     *
+                     */
 
 
                     auto vars = mpc.Solve(state, coeffs);

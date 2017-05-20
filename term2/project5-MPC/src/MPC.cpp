@@ -4,9 +4,27 @@
 
 using CppAD::AD;
 
-// We set the number of timesteps to 25
+// We set the number of timesteps to 15
 // and the timestep evaluation frequency or evaluation
 // period to 0.1.
+
+/**
+ * Implementation question 2 - Timestep Length and Frequency
+ *
+ * Prediction time = N * dt
+ * N determines the number of variables the optimized by MPC.
+ * Larger values of dt result in less frequent actuations, which makes it harder to accurately approximate a continuous reference trajectory.
+ *
+ * A good approach to setting N, dt, and T is to first determine a reasonable range for T and then tune dt and N appropriately
+ * First, I assume 1.5s ~ 2.5s should be a good value for prediction time. I tried 2.5s at beginning, however the simulator is only able to
+ * provide 6 waypoints so it seems 2.5s cause some issue when make a turn. Of course we can assume larger prediction time if more waypoints
+ * provided, but I choose 1.5 in this case.
+ *
+ * Then for N and dt, due to 100ms latency, it does not make sense for dt < 100ms so I choose dt = 100ms
+ * In this case, N = 15
+ */
+
+
 
 const size_t N = 15;
 const double dt = 0.1;
@@ -60,6 +78,12 @@ public:
         // The cost is stored is the first element of `fg`.
         // Any additions to the cost should be added to `fg[0]`.
         fg[0] = 0;
+
+        /**
+         * Multiplying by a value > 1 will influence the solver into keeping corresponding sequential values closer together.
+         * In general, we want the steering angle values to be smooth.
+         */
+
 
         // The part of the cost based on the reference state.
         for (int i = 0; i < N; i++) {

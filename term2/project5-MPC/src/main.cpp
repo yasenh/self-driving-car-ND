@@ -64,6 +64,9 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order)
     return result;
 }
 
+const int kLatencyMs = 100;
+const double kLf = 2.67;
+
 int main() {
     uWS::Hub h;
 
@@ -76,6 +79,7 @@ int main() {
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
         string sdata = string(data).substr(0, length);
+        std::cout << "*************************" << std::endl;
         cout << sdata << endl;
         if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
             string s = hasData(sdata);
@@ -90,6 +94,10 @@ int main() {
                     double py = j[1]["y"];
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
+                    double steer_value = j[1]["steering_angle"];
+                    double throttle_value = j[1]["throttle"];
+
+
 
                     // The position information we get is based on global coordinate
                     // we need to convert it to vehicle coordinate before fitting polynomials
@@ -141,7 +149,6 @@ int main() {
 
                     Eigen::VectorXd coeffs = polyfit(wp_x_vehicle_vec, wp_y_vehicle_vec, 3);
 
-
                     // The cross track error is calculated by evaluating at polynomial at x, f(x)
                     // and subtracting y.
                     double cte = polyeval(coeffs, 0);
@@ -151,11 +158,24 @@ int main() {
                     // arctan(f'(x))
                     // y = f(x) = c[0] + c[1] * x + c[2] * x^2 + c[3] * x^3
                     // derivative of c[0] + c[1] * x + c[2] * x^2 + c[3] * x^3 -> c[1] + 2 * c[2] * x + 3 * c[3] * x^2
-                    // at point (0, 0) which is vehicle coordinate, x = y = 0
+                    // at point (0, 0) which is vehicle coordinate, x = y = psi = 0
                     double epsi = -atan(coeffs[1]);
 
+                    // Because of the latency, the input of MPC should be compensated
+
+                    double dt = kLatencyMs / 1000;
+                    // v: The current velocity in mph
+                    double state_x = v * dt;
+                    double state_y = 0;
+                    double state_psi = v * steer_value / kLf * dt;
+                    double state_v = v + throttle_value * dt;
+                    double state_cte = cte + v * sin(epsi) * dt;
+                    double state_epsi = epsi + v * steer_value /kLf * dt;
+
                     Eigen::VectorXd state(6);
-                    state << 0, 0, 0, v, cte, epsi;
+                    //state << 0, 0, 0, v, cte, epsi;
+                    state << state_x, state_y, state_psi, state_v, state_cte, state_epsi;
+
 
                     /*
                     * Calculate steeering angle and throttle using MPC.
@@ -164,12 +184,10 @@ int main() {
                     *
                     */
 
-                    double steer_value, throttle_value;
 
                     auto vars = mpc.Solve(state, coeffs);
                     steer_value = -vars[0];
                     throttle_value = vars[1];
-
 
                     json msgJson;
                     msgJson["steering_angle"] = steer_value;
@@ -183,6 +201,8 @@ int main() {
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Yellow line
+
+                    // TODO: Figure out why ground truth is not stable
 
                     msgJson["next_x"] = wp_x_vehicle;
                     msgJson["next_y"] = wp_y_vehicle;
@@ -199,7 +219,7 @@ int main() {
                     //
                     // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
                     // SUBMITTING.
-                    this_thread::sleep_for(chrono::milliseconds(100));
+                    this_thread::sleep_for(chrono::milliseconds(kLatencyMs));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
                 }
             } else {

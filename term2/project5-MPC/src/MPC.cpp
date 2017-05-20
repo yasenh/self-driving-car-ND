@@ -7,8 +7,13 @@ using CppAD::AD;
 // We set the number of timesteps to 25
 // and the timestep evaluation frequency or evaluation
 // period to 0.1.
-const size_t N = 25;
-const double dt = 0.05;
+
+const size_t N = 15;
+const double dt = 0.1;
+
+//const size_t N = 10;
+//const double dt = 0.1;
+
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -26,7 +31,7 @@ const double Lf = 2.67;
 // The reference velocity is set to 40 mph.
 const double ref_cte = 0;
 const double ref_epsi = 0;
-const double ref_v = 40;
+const double ref_v = 50;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -58,21 +63,21 @@ public:
 
         // The part of the cost based on the reference state.
         for (int i = 0; i < N; i++) {
-            fg[0] += CppAD::pow(vars[cte_start + i] - ref_cte, 2);
-            fg[0] += CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
-            fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
+            fg[0] += 5000 * CppAD::pow(vars[cte_start + i] - ref_cte, 2);
+            fg[0] += 5000 * CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
+            fg[0] += 10 * CppAD::pow(vars[v_start + i] - ref_v, 2);
         }
 
         // Minimize the use of actuators.
         for (int i = 0; i < N - 1; i++) {
-            fg[0] += CppAD::pow(vars[delta_start + i], 2);
-            fg[0] += CppAD::pow(vars[a_start + i], 2);
+            fg[0] += 10 * CppAD::pow(vars[delta_start + i], 2);
+            fg[0] += 50 * CppAD::pow(vars[a_start + i], 2);
         }
 
         // Minimize the value gap between sequential actuations.
         for (int i = 0; i < N - 2; i++) {
-            fg[0] += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-            fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+            fg[0] += 1000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+            fg[0] += 100 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
         }
 
         //
@@ -207,7 +212,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // NOTE: Feel free to change this to something else.
     for (size_t i = a_start; i < n_vars; i++) {
         vars_lowerbound[i] = -1.0;
-        vars_upperbound[i] = 0.6;
+        vars_upperbound[i] = 1.0;
     }
 
     // Lower and upper limits for the constraints

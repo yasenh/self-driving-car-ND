@@ -1,6 +1,9 @@
 # CarND-Controls-MPC
 Self-Driving Car Engineer Nanodegree Program
 
+[image]: ./misc/screenshot.png
+
+![Demo1][image]
 ---
 
 ## Dependencies

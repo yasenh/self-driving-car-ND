@@ -97,8 +97,6 @@ int main() {
                     double steer_value = j[1]["steering_angle"];
                     double throttle_value = j[1]["throttle"];
 
-
-
                     // The position information we get is based on global coordinate
                     // we need to convert it to vehicle coordinate before fitting polynomials
                     // in vehicle coordinate x = y = psi = 0
@@ -141,7 +139,7 @@ int main() {
                         wp_x_vehicle.push_back(x * cos(-psi) - y * sin(-psi));
                         wp_y_vehicle.push_back(x * sin(-psi) + y * cos(-psi));
                     }
-
+                    psi = 0;
                     // convert std::vetcor to Eigen::VectorXd
                     Eigen::VectorXd wp_x_vehicle_vec, wp_y_vehicle_vec;
                     wp_x_vehicle_vec = Eigen::VectorXd::Map(wp_x_vehicle.data(), wp_x_vehicle.size());
@@ -174,19 +172,26 @@ int main() {
                      *  This could easily be modeled by a simple dynamic system and incorporated into the vehicle model.
                      */
 
+
                     // Because of the latency, the input of MPC should be compensated
 
                     double dt = kLatencyMs / 1000;
-                    double state_x = v * dt;
-                    double state_y = 0;
+//                    double state_x = v * dt;
+//                    double state_y = 0;
+
+                    // convert the velocity into m/s.
+                    double state_x = v * cos(psi) * dt * 0.44704 ;
+                    double state_y = v * sin(psi) * dt * 0.44704;
                     double state_psi = v * steer_value / kLf * dt;
                     double state_v = v + throttle_value * dt;
                     double state_cte = cte + v * sin(epsi) * dt;
                     double state_epsi = epsi + v * steer_value /kLf * dt;
 
+
                     Eigen::VectorXd state(6);
                     //state << 0, 0, 0, v, cte, epsi;
-                    state << state_x, state_y, state_psi, state_v, state_cte, state_epsi;
+                    //state << state_x, state_y, state_psi, state_v, state_cte, state_epsi;
+                    state << state_x, state_y, psi, v, cte, epsi;
 
 
                     /*
@@ -213,7 +218,9 @@ int main() {
 
 
                     auto vars = mpc.Solve(state, coeffs);
-                    steer_value = -vars[0];
+
+                    // convert the steering angle from radians to the normalized value range[-1,1]
+                    steer_value = -vars[0] / deg2rad(25);
                     throttle_value = vars[1];
 
                     json msgJson;

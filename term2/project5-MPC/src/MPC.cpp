@@ -26,7 +26,7 @@ using CppAD::AD;
 
 
 
-const size_t N = 15;
+const size_t N = 10;
 const double dt = 0.1;
 
 //const size_t N = 10;
@@ -63,6 +63,14 @@ const size_t epsi_start = cte_start + N;
 const size_t delta_start = epsi_start + N;
 const size_t a_start = delta_start + N - 1;
 
+const int kCte = 1;
+const int kEpsi = 1;
+const int kV = 1;
+const int kDelta = 100;
+const int kA = 10;
+const int kGapDelta = 5000;
+const int kGapA = 10;
+
 class FG_eval {
 public:
     // Fitted polynomial coefficients
@@ -87,21 +95,21 @@ public:
 
         // The part of the cost based on the reference state.
         for (int i = 0; i < N; i++) {
-            fg[0] += 5000 * CppAD::pow(vars[cte_start + i] - ref_cte, 2);
-            fg[0] += 5000 * CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
-            fg[0] += 10 * CppAD::pow(vars[v_start + i] - ref_v, 2);
+            fg[0] += kCte * CppAD::pow(vars[cte_start + i] - ref_cte, 2);
+            fg[0] += kEpsi * CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
+            fg[0] += kV * CppAD::pow(vars[v_start + i] - ref_v, 2);
         }
 
         // Minimize the use of actuators.
         for (int i = 0; i < N - 1; i++) {
-            fg[0] += 10 * CppAD::pow(vars[delta_start + i], 2);
-            fg[0] += 50 * CppAD::pow(vars[a_start + i], 2);
+            fg[0] += kDelta * CppAD::pow(vars[delta_start + i], 2);
+            fg[0] += kA * CppAD::pow(vars[a_start + i], 2);
         }
 
         // Minimize the value gap between sequential actuations.
         for (int i = 0; i < N - 2; i++) {
-            fg[0] += 1000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-            fg[0] += 100 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+            fg[0] += kGapDelta * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+            fg[0] += kGapA * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
         }
 
         //

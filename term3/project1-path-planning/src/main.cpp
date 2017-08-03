@@ -206,8 +206,11 @@ int main() {
     spline_sdx.set_points(map_waypoints_s, map_waypoints_dx);
     spline_sdy.set_points(map_waypoints_s, map_waypoints_dy);
 
-    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                                                                                                         uWS::OpCode opCode) {
+
+    Vehicle host_vehicle(kHostVehicleId);
+    int frame_index = 0;
+
+    h.onMessage([&host_vehicle, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
@@ -250,8 +253,12 @@ int main() {
 
 
                     // Previous path data given to the Planner
-                    auto previous_path_x = j[1]["previous_path_x"];
-                    auto previous_path_y = j[1]["previous_path_y"];
+
+                    //auto previous_path_x = j[1]["previous_path_x"];
+                    //auto previous_path_y = j[1]["previous_path_y"];
+
+                    vector<double> previous_path_x = j[1]["previous_path_x"];
+                    vector<double> previous_path_y = j[1]["previous_path_y"];
                     // Previous path's end s and d values
                     double end_path_s = j[1]["end_path_s"];
                     double end_path_d = j[1]["end_path_d"];
@@ -270,9 +277,11 @@ int main() {
                     /**
                      *  Start Test
                      */
-                    std::cout << car_d << std::endl;
 
-                    Vehicle host_vehicle(kHostVehicleId, car_s, car_d, car_speed);
+                    next_x_vals = previous_path_x;
+                    next_y_vals = previous_path_y;
+
+                    host_vehicle.UpdateState(car_s, car_d, car_speed);
                     vector<Vehicle> fusion_vehicles;
 
                     for (size_t i = 0; i < sensor_fusion.size(); i++) {
@@ -294,22 +303,86 @@ int main() {
                     vector<double> end_s, end_d;
 
 
-                    if (previous_path_size == 0) {
 
-                        start_s = {car_s, car_speed, 0.0};
+                    // The host vehicle is about to start
+                    if (frame_index == 0) {
+                        int n = 225;
+                        double t = n * kTimeInterval;
+
+                        double target_s = host_vehicle.GetS() + 40.0;
+                        double target_speed = 20.0;
+
+                        start_s = {host_vehicle.GetS(), host_vehicle.GetVel(), 0};
+                        end_s = {target_s, target_speed, 0.0};
+
+                        start_d = {host_vehicle.GetD(), 0.0, 0.0};
+                        end_d = {6.0, 0.0, 0.0};
+
+                        vector<double> jmt_s = JMT(start_s, end_s, t);
+                        vector<double> jmt_d = JMT(start_d, end_d, t);
+
+
+                        for (size_t i = 0; i < n; i++) {
+                            double t = kTimeInterval * i;
+                            double t2 = t * t;
+                            double t3 = t2 * t;
+                            double t4 = t3 * t;
+                            double t5 = t4 * t;
+
+
+                            double wp_s = jmt_s[0] + jmt_s[1] * t + jmt_s[2] * t2 + jmt_s[3] * t3 + jmt_s[4] * t4 +
+                                          jmt_s[5] * t5;
+                            double wp_d = jmt_d[0] + jmt_d[1] * t + jmt_d[2] * t2 + jmt_d[3] * t3 + jmt_d[4] * t4 +
+                                          jmt_d[5] * t5;
+
+
+                            //std::cout << wp_s << " , " << wp_d << std::endl;
+
+                            double wp_x = spline_sx(wp_s);
+                            double wp_y = spline_sy(wp_s);
+                            double wp_dx = spline_sdx(wp_s);
+                            double wp_dy = spline_sdy(wp_s);
+
+                            wp_x += wp_dx * wp_d;
+                            wp_y += wp_dy * wp_d;
+
+                            next_x_vals.push_back(wp_x);
+                            next_y_vals.push_back(wp_y);
+
+                        }
+
+                    }
+
+                    /**
+                     *
+                     * If we don't have enough way points from previous path
+                     * then we need to predict new trajectory way points
+                     *
+                     * However, these prediction will be add to the remaining trajectory
+                     * In this case, we should use last point to predict
+                     * end_path_s and end_path_d
+                     *
+                     * TODO: Another more efficient way is to save every start & end status!!!
+                     *
+                     */
+
+
+                    else if (previous_path_size < kMinTrajectoryPtNum) {
+
+                        start_s = {end_path_s, 20.0, 0.0};
                         //end_s = {car_s + kPredictionTime * car_speed * 0.44704, 12, 0};
 
-                        end_s = {car_s + 30.0, 15.0, 0.0};
+                        end_s = {end_path_s + 40.0, 20.0, 0.0};
 
-                        start_d = {car_d, 0.0, 0.0};
-                        end_d = {car_d, 0.0, 0.0};
+                        start_d = {6.0, 0.0, 0.0};
+                        end_d = {6.0, 0.0, 0.0};
 
                         vector<double> jmt_s = JMT(start_s, end_s, kPredictionTime);
                         vector<double> jmt_d = JMT(start_d, end_d, kPredictionTime);
 
 
                         for (size_t i = 0; i < kPredictionPtNum; i++) {
-                            double t = 0.02 * i;
+                            double t = kTimeInterval * i;
                             double t2 = t * t;
                             double t3 = t2 * t;
                             double t4 = t3 * t;
@@ -337,12 +410,12 @@ int main() {
 
                         }
                     }
-                    else {
-                        for (size_t i = 0; i < previous_path_size; i++) {
-                            next_x_vals.push_back(previous_path_x[i]);
-                            next_y_vals.push_back(previous_path_y[i]);
-                        }
-                    }
+//                    else {
+//                        for (size_t i = 0; i < previous_path_size; i++) {
+//                            next_x_vals.push_back(previous_path_x[i]);
+//                            next_y_vals.push_back(previous_path_y[i]);
+//                        }
+//                    }
 
 
                     std::cout << "***************************************" << std::endl;
@@ -369,6 +442,9 @@ int main() {
                 ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             }
         }
+
+        frame_index++;
+
     });
 
     // We don't need this since we're not using HTTP but if it's removed the

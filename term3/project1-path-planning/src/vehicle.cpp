@@ -7,18 +7,22 @@
 
 Vehicle::Vehicle() {}
 
-Vehicle::Vehicle(int id, double s, double d, double vel): id_(id), s_(s), d_(d), vel_(vel) {
+Vehicle::Vehicle(int id) : id_(id) {}
+
+Vehicle::Vehicle(int id, double s, double d, double vel) : id_(id), s_(s), d_(d), vel_(vel) {
     LaneSegmentation();
 }
 
 Vehicle::~Vehicle() {}
 
-//void Vehicle::update_state(double s, double d, double vel) {
-//    s_ = s;
-//    d_ = d;
-//    vel_ = vel;
-//    LaneSegmentation();
-//}
+void Vehicle::UpdateState(double s, double d, double vel) {
+    s_   = s;
+    d_   = d;
+    vel_ = vel;
+    LaneSegmentation();
+
+    //state_s_ = {s_, vel_, 0};
+}
 
 void Vehicle::LaneSegmentation() {
     if (d_ < 0 || d_ > kTotalLaneNum * kLaneWidth)

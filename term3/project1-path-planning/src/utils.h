@@ -20,5 +20,6 @@ const int kTotalLaneNum  = 3;
 const double kTimeInterval      = 0.02;
 const double kPredictionTime    = 2.0;
 const int kPredictionPtNum      = static_cast<int>(kPredictionTime / kTimeInterval);
+const int kMinTrajectoryPtNum   = 20;
 
 #endif //PATH_PLANNING_UTILS_H

@@ -24,11 +24,15 @@ const float kTimeInterval      = 0.02;
 
 const int kPredictionPtNum     = 100;
 
-const int kMinTrajectoryPtNum  = 20;
+const int kMinTrajectoryPtNum  = 40;
 
-const double kLeftLaneD   = 2.0;
-const double kMiddleLaneD = 6.0;
-const double kRightLaneD  = 10.0;
+const float kLeftLaneD   = 2.0;
+const float kMiddleLaneD = 6.0;
+const float kRightLaneD  = 10.0;
+
+
+// mps
+const float kSpeedLimit = 20.0;
 
 
 #endif //PATH_PLANNING_UTILS_H

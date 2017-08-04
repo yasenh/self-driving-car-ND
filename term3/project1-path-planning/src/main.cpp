@@ -226,7 +226,7 @@ int main() {
                     next_x_vals = previous_path_x;
                     next_y_vals = previous_path_y;
 
-                    host_vehicle.UpdateState(car_s, car_d, car_speed);
+                    host_vehicle.UpdatePositionVelocity(car_s, car_d, car_speed);
                     trajectory_planner.LoadCurrentTrajectory(next_x_vals, next_y_vals);
 
                     vector<Vehicle> fusion_vehicles;
@@ -250,13 +250,12 @@ int main() {
                     vector<double> end_s, end_d;
 
 
-
                     // The host vehicle is about to start
                     if (frame_index == 0) {
                         int n = 225;
 
                         double target_s = host_vehicle.GetS() + 40.0;
-                        double target_speed = 20.0;
+                        double target_speed = kSpeedLimit;
 
                         start_s = {host_vehicle.GetS(), host_vehicle.GetVel(), 0};
                         end_s = {target_s, target_speed, 0.0};
@@ -265,7 +264,7 @@ int main() {
                         end_d = {kMiddleLaneD, 0.0, 0.0};
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, n);
-
+                        host_vehicle.UpdateState(end_s, end_d);
                     }
 
                     /**
@@ -284,15 +283,17 @@ int main() {
 
                     else if (previous_path_size < kMinTrajectoryPtNum) {
 
-                        start_s = {end_path_s, 20.0, 0.0};
+                        start_s = host_vehicle.GetStateS();
                         end_s = {end_path_s + 40.0, 20.0, 0.0};
 
-                        start_d = {kMiddleLaneD, 0.0, 0.0};
+                        start_d = host_vehicle.GetStateD();
                         end_d = {kMiddleLaneD, 0.0, 0.0};
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, kPredictionPtNum);
-
+                        host_vehicle.UpdateState(end_s, end_d);
                     }
+
+
 
 
                     std::cout << "***************************************" << std::endl;

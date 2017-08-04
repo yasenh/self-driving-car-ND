@@ -24,7 +24,8 @@ public:
      */
     virtual ~Vehicle();
 
-    void UpdateState(double s, double d, double vel);
+    void UpdatePositionVelocity(double s, double d, double vel);
+    void UpdateState(std::vector<double> state_s, std::vector<double> state_d);
 
     int GetLane();
 
@@ -44,18 +45,10 @@ public:
         return state_s_;
     }
 
-    void SetStateS(std::vector<double> state_s) {
-        state_s_ = state_s;
-    }
 
     std::vector<double> GetStateD() {
         return state_d_;
     }
-
-    void SetStateD(std::vector<double> state_d) {
-        state_d_ = state_d;
-    }
-
 
 
 private:

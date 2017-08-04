@@ -15,13 +15,16 @@ Vehicle::Vehicle(int id, double s, double d, double vel) : id_(id), s_(s), d_(d)
 
 Vehicle::~Vehicle() {}
 
-void Vehicle::UpdateState(double s, double d, double vel) {
+void Vehicle::UpdatePositionVelocity(double s, double d, double vel) {
     s_   = s;
     d_   = d;
     vel_ = vel;
     LaneSegmentation();
+}
 
-    //state_s_ = {s_, vel_, 0};
+void Vehicle::UpdateState(std::vector<double> state_s, std::vector<double> state_d) {
+    state_s_ = state_s;
+    state_d_ = state_d;
 }
 
 void Vehicle::LaneSegmentation() {

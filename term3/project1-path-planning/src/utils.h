@@ -17,9 +17,18 @@ const int kLaneWidth     = 4;
 const int kTotalLaneNum  = 3;
 
 //Every 0.02s = 20 ms the car will move exactly to the next point
-const double kTimeInterval      = 0.02;
-const double kPredictionTime    = 2.0;
-const int kPredictionPtNum      = static_cast<int>(kPredictionTime / kTimeInterval);
-const int kMinTrajectoryPtNum   = 20;
+const float kTimeInterval      = 0.02;
+
+//const float kPredictionTime    = 2.0;
+//const int kPredictionPtNum     = static_cast<int>(kPredictionTime / kTimeInterval);
+
+const int kPredictionPtNum     = 100;
+
+const int kMinTrajectoryPtNum  = 20;
+
+const double kLeftLaneD   = 2.0;
+const double kMiddleLaneD = 6.0;
+const double kRightLaneD  = 10.0;
+
 
 #endif //PATH_PLANNING_UTILS_H

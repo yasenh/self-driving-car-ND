@@ -5,18 +5,16 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
-#include "Eigen-3.3/Eigen/Dense"
+
 #include "json.hpp"
 #include "spline.h"
 
 #include "vehicle.h"
+#include "trajectory_planner.h"
 #include "utils.h"
 
 using namespace std;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
+
 
 // for convenience
 using json = nlohmann::json;
@@ -25,8 +23,6 @@ using json = nlohmann::json;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
-
-const float kSpeedLimit = 45;
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -119,53 +115,6 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
     return {frenet_s, frenet_d};
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
-
-
-// Jerk minimizing trajectories from Lesson 5: Trajectory Generation
-vector<double> JMT(vector<double> start, vector<double> end, double T) {
-    /**
-     * Calculate the Jerk Minimizing Trajectory that connects the initial state to the final state in time T.
-
-     *INPUTS
-      start - the vehicles start location given as a length three array corresponding to initial values of [s, s_dot, s_double_dot]
-      end   - the desired end state for vehicle. Like "start" this is a length three array.
-      T     - The duration, in seconds, over which this maneuver should occur.
-
-     *OUTPUT
-      an array of length 6, each value corresponding to a coefficent in the polynomial
-      s(t) = a_0 + a_1 * t + a_2 * t**2 + a_3 * t**3 + a_4 * t**4 + a_5 * t**5
-
-     *EXAMPLE
-
-     *> JMT( [0, 10, 0], [10, 10, 0], 1)
-     *[0.0, 10.0, 0.0, 0.0, 0.0, 0.0]
-     */
-
-    MatrixXd A = MatrixXd(3, 3);
-    A <<    T*T*T, T*T*T*T, T*T*T*T*T,
-            3*T*T, 4*T*T*T, 5*T*T*T*T,
-            6*T  , 12*T*T , 20*T*T*T;
-
-    MatrixXd B = MatrixXd(3,1);
-    B <<    end[0]-(start[0]+start[1]*T+.5*start[2]*T*T),
-            end[1]-(start[1]+start[2]*T),
-            end[2]-start[2];
-
-    MatrixXd Ai = A.inverse();
-    MatrixXd C = Ai*B;
-
-    vector <double> result = {start[0], start[1], .5*start[2]};
-    for(int i = 0; i < C.size(); i++) {
-        result.push_back(C.data()[i]);
-    }
-
-
-    return result;
-}
-
-// TODO: try fit all points at beginning then think about 10 previous + 15 future points (put from global to captured)
-tk::spline spline_sx, spline_sy, spline_sdx, spline_sdy;
 
 int main() {
     uWS::Hub h;
@@ -201,16 +150,12 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
 
-    spline_sx.set_points(map_waypoints_s, map_waypoints_x);
-    spline_sy.set_points(map_waypoints_s, map_waypoints_y);
-    spline_sdx.set_points(map_waypoints_s, map_waypoints_dx);
-    spline_sdy.set_points(map_waypoints_s, map_waypoints_dy);
-
 
     Vehicle host_vehicle(kHostVehicleId);
+    TrajectoryPlanner trajectory_planner(map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s);
     int frame_index = 0;
 
-    h.onMessage([&host_vehicle, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+    h.onMessage([&host_vehicle, &trajectory_planner, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
@@ -282,6 +227,8 @@ int main() {
                     next_y_vals = previous_path_y;
 
                     host_vehicle.UpdateState(car_s, car_d, car_speed);
+                    trajectory_planner.LoadCurrentTrajectory(next_x_vals, next_y_vals);
+
                     vector<Vehicle> fusion_vehicles;
 
                     for (size_t i = 0; i < sensor_fusion.size(); i++) {
@@ -307,7 +254,6 @@ int main() {
                     // The host vehicle is about to start
                     if (frame_index == 0) {
                         int n = 225;
-                        double t = n * kTimeInterval;
 
                         double target_s = host_vehicle.GetS() + 40.0;
                         double target_speed = 20.0;
@@ -316,40 +262,9 @@ int main() {
                         end_s = {target_s, target_speed, 0.0};
 
                         start_d = {host_vehicle.GetD(), 0.0, 0.0};
-                        end_d = {6.0, 0.0, 0.0};
+                        end_d = {kMiddleLaneD, 0.0, 0.0};
 
-                        vector<double> jmt_s = JMT(start_s, end_s, t);
-                        vector<double> jmt_d = JMT(start_d, end_d, t);
-
-
-                        for (size_t i = 0; i < n; i++) {
-                            double t = kTimeInterval * i;
-                            double t2 = t * t;
-                            double t3 = t2 * t;
-                            double t4 = t3 * t;
-                            double t5 = t4 * t;
-
-
-                            double wp_s = jmt_s[0] + jmt_s[1] * t + jmt_s[2] * t2 + jmt_s[3] * t3 + jmt_s[4] * t4 +
-                                          jmt_s[5] * t5;
-                            double wp_d = jmt_d[0] + jmt_d[1] * t + jmt_d[2] * t2 + jmt_d[3] * t3 + jmt_d[4] * t4 +
-                                          jmt_d[5] * t5;
-
-
-                            //std::cout << wp_s << " , " << wp_d << std::endl;
-
-                            double wp_x = spline_sx(wp_s);
-                            double wp_y = spline_sy(wp_s);
-                            double wp_dx = spline_sdx(wp_s);
-                            double wp_dy = spline_sdy(wp_s);
-
-                            wp_x += wp_dx * wp_d;
-                            wp_y += wp_dy * wp_d;
-
-                            next_x_vals.push_back(wp_x);
-                            next_y_vals.push_back(wp_y);
-
-                        }
+                        trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, n);
 
                     }
 
@@ -370,52 +285,14 @@ int main() {
                     else if (previous_path_size < kMinTrajectoryPtNum) {
 
                         start_s = {end_path_s, 20.0, 0.0};
-                        //end_s = {car_s + kPredictionTime * car_speed * 0.44704, 12, 0};
-
                         end_s = {end_path_s + 40.0, 20.0, 0.0};
 
-                        start_d = {6.0, 0.0, 0.0};
-                        end_d = {6.0, 0.0, 0.0};
+                        start_d = {kMiddleLaneD, 0.0, 0.0};
+                        end_d = {kMiddleLaneD, 0.0, 0.0};
 
-                        vector<double> jmt_s = JMT(start_s, end_s, kPredictionTime);
-                        vector<double> jmt_d = JMT(start_d, end_d, kPredictionTime);
+                        trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, kPredictionPtNum);
 
-
-                        for (size_t i = 0; i < kPredictionPtNum; i++) {
-                            double t = kTimeInterval * i;
-                            double t2 = t * t;
-                            double t3 = t2 * t;
-                            double t4 = t3 * t;
-                            double t5 = t4 * t;
-
-
-                            double wp_s = jmt_s[0] + jmt_s[1] * t + jmt_s[2] * t2 + jmt_s[3] * t3 + jmt_s[4] * t4 +
-                                          jmt_s[5] * t5;
-                            double wp_d = jmt_d[0] + jmt_d[1] * t + jmt_d[2] * t2 + jmt_d[3] * t3 + jmt_d[4] * t4 +
-                                          jmt_d[5] * t5;
-
-
-                            //std::cout << wp_s << " , " << wp_d << std::endl;
-
-                            double wp_x = spline_sx(wp_s);
-                            double wp_y = spline_sy(wp_s);
-                            double wp_dx = spline_sdx(wp_s);
-                            double wp_dy = spline_sdy(wp_s);
-
-                            wp_x += wp_dx * wp_d;
-                            wp_y += wp_dy * wp_d;
-
-                            next_x_vals.push_back(wp_x);
-                            next_y_vals.push_back(wp_y);
-
-                        }
                     }
-//                    else {
-//                        for (size_t i = 0; i < previous_path_size; i++) {
-//                            next_x_vals.push_back(previous_path_x[i]);
-//                            next_y_vals.push_back(previous_path_y[i]);
-//                        }
-//                    }
 
 
                     std::cout << "***************************************" << std::endl;
@@ -427,8 +304,8 @@ int main() {
                      */
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-                    msgJson["next_x"] = next_x_vals;
-                    msgJson["next_y"] = next_y_vals;
+                    msgJson["next_x"] = trajectory_planner.GetTrajectoryX();
+                    msgJson["next_y"] = trajectory_planner.GetTrajectoryY();
 
                     auto msg = "42[\"control\","+ msgJson.dump()+"]";
 

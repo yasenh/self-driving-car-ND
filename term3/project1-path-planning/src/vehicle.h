@@ -11,8 +11,8 @@
 class Vehicle {
 public:
     /**
-    * Constructor
-    */
+     * Constructor
+     */
     Vehicle();
 
     Vehicle(int id);
@@ -20,8 +20,8 @@ public:
     Vehicle(int id, double s, double d, double vel);
 
     /**
-    * Destructor
-    */
+     * Destructor
+     */
     virtual ~Vehicle();
 
     void UpdateState(double s, double d, double vel);

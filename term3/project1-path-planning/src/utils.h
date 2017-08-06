@@ -12,6 +12,12 @@ enum LaneSegment {
     kRightLane      = 2,
 };
 
+enum BehaviorState {
+    kKeepLane    = 0,
+    kChangeLeft  = 1,
+    kChangeRight = 2,
+};
+
 const int kHostVehicleId = -1;
 const int kLaneWidth     = 4;
 const int kTotalLaneNum  = 3;
@@ -32,7 +38,10 @@ const float kRightLaneD  = 10.0;
 
 
 // mps
-const float kSpeedLimit = 20.0;
+const float kSpeedLimit  = 20.0;
+const float kSpeedBuffer = 5.0;
+
+const double kMaxDistance = 9999;
 
 
 #endif //PATH_PLANNING_UTILS_H

@@ -11,6 +11,7 @@
 
 #include "vehicle.h"
 #include "trajectory_planner.h"
+#include "behavior_planner.h"
 #include "utils.h"
 
 using namespace std;
@@ -150,12 +151,12 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
 
-
+    int frame_index = 0;
     Vehicle host_vehicle(kHostVehicleId);
     TrajectoryPlanner trajectory_planner(map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s);
-    int frame_index = 0;
+    BehaviorPlanner behavior_planner;
 
-    h.onMessage([&host_vehicle, &trajectory_planner, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+    h.onMessage([&host_vehicle, &trajectory_planner, &behavior_planner, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
@@ -236,6 +237,8 @@ int main() {
 
                         double fusion_vx = sensor_fusion[i][3];
                         double fusion_vy = sensor_fusion[i][4];
+
+                        // mps, not mph!!!
                         double fusion_v = sqrt(fusion_vx * fusion_vx + fusion_vy * fusion_vy);
 
                         double fusion_s = sensor_fusion[i][5];
@@ -244,6 +247,9 @@ int main() {
                         Vehicle veh(fusion_id, fusion_s, fusion_d, fusion_v);
                         fusion_vehicles.push_back(veh);
                     }
+
+                    behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles);
+                    behavior_planner.UpdateState();
 
 
                     vector<double> start_s, start_d;

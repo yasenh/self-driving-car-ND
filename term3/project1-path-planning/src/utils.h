@@ -32,10 +32,7 @@ const int kPredictionPtNum     = 100;
 
 const int kMinTrajectoryPtNum  = 60;
 
-const float kLeftLaneD   = 2.0;
-const float kMiddleLaneD = 6.0;
-const float kRightLaneD  = 10.0;
-
+const float kLaneD[kTotalLaneNum] = {2.2, 6.0, 9.8};
 
 // mps
 const double kSpeedLimit  = 20.0;
@@ -43,6 +40,7 @@ const double kSpeedBuffer = 4.0;
 
 const double kMaxDistance = 9999;
 const double kMaxSpeed = 9999;
+const double kMaxCost = 9999;
 
 const double kDistanceBuffer = 60.0;
 //const double kPredictionDistance = 40.0;

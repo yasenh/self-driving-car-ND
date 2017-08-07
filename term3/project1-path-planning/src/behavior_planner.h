@@ -6,6 +6,7 @@
 #define PATH_PLANNING_BEHAVIOR_PLANNER_H
 
 #include <iostream>
+#include <algorithm>
 #include "vehicle.h"
 #include "utils.h"
 
@@ -28,6 +29,10 @@ public:
         return target_delta_s_;
     }
 
+    double GetTargetD() {
+        return target_d_;
+    }
+
     double GetTargetSpeed() {
         return target_speed_;
     }
@@ -37,6 +42,7 @@ private:
     void CalculateCost();
 
     double target_delta_s_;
+    double target_d_;
     double target_speed_;
 
     Vehicle host_vehicle_;
@@ -45,7 +51,7 @@ private:
     double lane_front_s_[kTotalLaneNum], lane_rear_s_[kTotalLaneNum];
     double lane_front_vel_[kTotalLaneNum], lane_rear_vel_[kTotalLaneNum];
 
-    double cost_keep_lane_, cost_change_left_, cost_change_right_;
+    //double cost_keep_lane_, cost_change_left_, cost_change_right_;
 
     BehaviorState state_;
 

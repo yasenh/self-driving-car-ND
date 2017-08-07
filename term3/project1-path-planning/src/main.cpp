@@ -266,7 +266,7 @@ int main() {
                         end_s = {target_s, target_speed, 0.0};
 
                         start_d = {host_vehicle.GetD(), 0.0, 0.0};
-                        end_d = {kMiddleLaneD, 0.0, 0.0};
+                        end_d = {kLaneD[1], 0.0, 0.0};
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, n);
                         host_vehicle.UpdateState(end_s, end_d);
@@ -294,10 +294,10 @@ int main() {
 
                         start_s = host_vehicle.GetStateS();
                         end_s = {end_path_s + target_delta_s, target_speed, 0.0};
-                        //end_s = {target_s, target_speed, 0.0};
 
+                        double target_d = behavior_planner.GetTargetD();
                         start_d = host_vehicle.GetStateD();
-                        end_d = {kMiddleLaneD, 0.0, 0.0};
+                        end_d = {target_d, 0.0, 0.0};
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, kPredictionPtNum);
                         host_vehicle.UpdateState(end_s, end_d);

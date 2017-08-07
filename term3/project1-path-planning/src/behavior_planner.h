@@ -24,18 +24,28 @@ public:
     void UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles);
     BehaviorState UpdateState();
 
+    double GetTargetDeltaS() {
+        return target_delta_s_;
+    }
+
+    double GetTargetSpeed() {
+        return target_speed_;
+    }
+
 private:
-    void GetClosestVehicle(LaneSegment lane, double &distance_front, double &distance_rear);
+    void GetClosestVehicle(LaneSegment lane, double &distance_front, double &velocity_front, double &distance_rear, double &velocity_rear);
     void CalculateCost();
 
-    float target_speed_;
+    double target_delta_s_;
+    double target_speed_;
 
     Vehicle host_vehicle_;
     std::vector<Vehicle> fusion_vehicles_;
 
-    double left_lane_front_, left_lane_rear_;
-    double middle_lane_front_, middle_lane_rear_;
-    double right_lane_front_, right_lane_rear_;
+    double lane_front_s_[kTotalLaneNum], lane_rear_s_[kTotalLaneNum];
+    double lane_front_vel_[kTotalLaneNum], lane_rear_vel_[kTotalLaneNum];
+
+    double cost_keep_lane_, cost_change_left_, cost_change_right_;
 
     BehaviorState state_;
 

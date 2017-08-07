@@ -210,7 +210,6 @@ int main() {
                     double end_path_d = j[1]["end_path_d"];
 
                     size_t previous_path_size = previous_path_x.size();
-                    std::cout << previous_path_size << std::endl;
 
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
@@ -288,9 +287,14 @@ int main() {
 
 
                     else if (previous_path_size < kMinTrajectoryPtNum) {
+                        double target_delta_s = behavior_planner.GetTargetDeltaS();
+                        double target_speed = behavior_planner.GetTargetSpeed();
+
+                        std::cout << target_speed << std::endl;
 
                         start_s = host_vehicle.GetStateS();
-                        end_s = {end_path_s + 40.0, 20.0, 0.0};
+                        end_s = {end_path_s + target_delta_s, target_speed, 0.0};
+                        //end_s = {target_s, target_speed, 0.0};
 
                         start_d = host_vehicle.GetStateD();
                         end_d = {kMiddleLaneD, 0.0, 0.0};

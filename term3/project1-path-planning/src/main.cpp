@@ -229,26 +229,7 @@ int main() {
                     host_vehicle.UpdatePositionVelocity(car_s, car_d, car_speed);
                     trajectory_planner.LoadCurrentTrajectory(next_x_vals, next_y_vals);
 
-                    vector<Vehicle> fusion_vehicles;
 
-                    for (size_t i = 0; i < sensor_fusion.size(); i++) {
-                        int fusion_id = sensor_fusion[i][0];
-
-                        double fusion_vx = sensor_fusion[i][3];
-                        double fusion_vy = sensor_fusion[i][4];
-
-                        // mps, not mph!!!
-                        double fusion_v = sqrt(fusion_vx * fusion_vx + fusion_vy * fusion_vy);
-
-                        double fusion_s = sensor_fusion[i][5];
-                        double fusion_d = sensor_fusion[i][6];
-
-                        Vehicle veh(fusion_id, fusion_s, fusion_d, fusion_v);
-                        fusion_vehicles.push_back(veh);
-                    }
-
-                    behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles);
-                    behavior_planner.UpdateState();
 
 
                     vector<double> start_s, start_d;
@@ -266,7 +247,7 @@ int main() {
                         end_s = {target_s, target_speed, 0.0};
 
                         start_d = {host_vehicle.GetD(), 0.0, 0.0};
-                        end_d = {kLaneD[1], 0.0, 0.0};
+                        end_d = {kLaneD[host_vehicle.GetLane()], 0.0, 0.0};
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, n);
                         host_vehicle.UpdateState(end_s, end_d);
@@ -286,14 +267,40 @@ int main() {
                      */
 
 
-                    else if (previous_path_size < kMinTrajectoryPtNum) {
+
+
+                    else if (previous_path_size < kMinTrajectoryPtNum && host_vehicle.GetLane() == behavior_planner.GetTargetLane()) {
+
+                        std::cout << previous_path_size << std::endl;
+
+                        vector<Vehicle> fusion_vehicles;
+                        for (size_t i = 0; i < sensor_fusion.size(); i++) {
+                            int fusion_id = sensor_fusion[i][0];
+
+                            double fusion_vx = sensor_fusion[i][3];
+                            double fusion_vy = sensor_fusion[i][4];
+
+                            // mps, not mph!!!
+                            double fusion_v = sqrt(fusion_vx * fusion_vx + fusion_vy * fusion_vy);
+
+                            double fusion_s = sensor_fusion[i][5];
+                            double fusion_d = sensor_fusion[i][6];
+
+                            Vehicle veh(fusion_id, fusion_s, fusion_d, fusion_v);
+                            fusion_vehicles.push_back(veh);
+                        }
+
+                        behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles, frame_index);
+                        behavior_planner.UpdateState();
+
                         double target_delta_s = behavior_planner.GetTargetDeltaS();
                         double target_speed = behavior_planner.GetTargetSpeed();
 
-                        std::cout << target_speed << std::endl;
 
                         start_s = host_vehicle.GetStateS();
                         end_s = {end_path_s + target_delta_s, target_speed, 0.0};
+
+
 
                         double target_d = behavior_planner.GetTargetD();
                         start_d = host_vehicle.GetStateD();
@@ -301,12 +308,20 @@ int main() {
 
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, kPredictionPtNum);
                         host_vehicle.UpdateState(end_s, end_d);
+
+                        //std::cout << "target_delta_s = " << target_delta_s << " target_vel = " << target_speed << std::endl;
+                        //std::cout << "start_d = " << start_d[0] << " target_d = " << start_d[0] << std::endl;
+
+                        std::cout << "target_d in main = " << target_d << std::endl;
+                        std::cout << "HOST_VEH_S = " << host_vehicle.GetS() << std::endl;
+
+                        std::cout << "***************************************" << std::endl;
                     }
 
 
 
 
-                    std::cout << "***************************************" << std::endl;
+
 
 
                     /**

@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <math.h>
 #include "vehicle.h"
 #include "utils.h"
 
@@ -22,11 +23,15 @@ public:
      */
     virtual ~BehaviorPlanner();
 
-    void UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles);
+    void UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles, int frame_index);
     BehaviorState UpdateState();
 
     double GetTargetDeltaS() {
         return target_delta_s_;
+    }
+
+    int GetTargetLane() {
+        return target_lane_;
     }
 
     double GetTargetD() {
@@ -37,6 +42,10 @@ public:
         return target_speed_;
     }
 
+    int GetKeepLaneTime() {
+        return keep_lane_time_;
+    }
+
 private:
     void GetClosestVehicle(LaneSegment lane, double &distance_front, double &velocity_front, double &distance_rear, double &velocity_rear);
     void CalculateCost();
@@ -45,13 +54,18 @@ private:
     double target_d_;
     double target_speed_;
 
+    int target_lane_;
+
     Vehicle host_vehicle_;
     std::vector<Vehicle> fusion_vehicles_;
 
     double lane_front_s_[kTotalLaneNum], lane_rear_s_[kTotalLaneNum];
     double lane_front_vel_[kTotalLaneNum], lane_rear_vel_[kTotalLaneNum];
 
-    //double cost_keep_lane_, cost_change_left_, cost_change_right_;
+    int current_frame_index_;
+    int last_lane_change_frame_index_;
+
+    int keep_lane_time_;
 
     BehaviorState state_;
 

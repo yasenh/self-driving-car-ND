@@ -13,8 +13,8 @@ enum LaneSegment {
 };
 
 enum BehaviorState {
-    kKeepLane    = 0,
-    kChangeLeft  = 1,
+    kChangeLeft  = 0,
+    kKeepLane    = 1,
     kChangeRight = 2,
 };
 
@@ -30,19 +30,29 @@ const float kTimeInterval      = 0.02;
 
 const int kPredictionPtNum     = 100;
 
-const int kMinTrajectoryPtNum  = 60;
+const int kMinTrajectoryPtNum  = 80;
 
 const float kLaneD[kTotalLaneNum] = {2.2, 6.0, 9.8};
 
 // mps
 const double kSpeedLimit  = 20.0;
-const double kSpeedBuffer = 4.0;
+const double kSpeedBuffer = 2.0;
+
+
+
 
 const double kMaxDistance = 9999;
 const double kMaxSpeed = 9999;
 const double kMaxCost = 9999;
 
-const double kDistanceBuffer = 60.0;
+const double kChangeLaneFactor = 1.1;
+const double kMiddleLaneFactor = 0.9;
+
+const double kDistanceBuffer = 45.0;
+const double kSafetyDistance = 20.0;
+
+const int kMinLaneChangeFrame = 100;
+const int kMinLaneKeepingTime = 5;
 //const double kPredictionDistance = 40.0;
 
 #endif //PATH_PLANNING_UTILS_H

@@ -197,46 +197,37 @@ int main() {
                     double car_yaw = j[1]["yaw"];
                     double car_speed = j[1]["speed"];
 
-
                     // Previous path data given to the Planner
-
-                    //auto previous_path_x = j[1]["previous_path_x"];
-                    //auto previous_path_y = j[1]["previous_path_y"];
-
                     vector<double> previous_path_x = j[1]["previous_path_x"];
                     vector<double> previous_path_y = j[1]["previous_path_y"];
+
                     // Previous path's end s and d values
                     double end_path_s = j[1]["end_path_s"];
                     double end_path_d = j[1]["end_path_d"];
 
-                    size_t previous_path_size = previous_path_x.size();
-
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
 
-                    json msgJson;
-
-                    vector<double> next_x_vals, next_y_vals;
-
+                    size_t previous_path_size = previous_path_x.size();
 
                     /**
                      *  Start Test
                      */
-
+                    vector<double> next_x_vals, next_y_vals;
                     next_x_vals = previous_path_x;
                     next_y_vals = previous_path_y;
 
+                    // Update host vehicle information
                     host_vehicle.UpdatePositionVelocity(car_s, car_d, car_speed);
+
+                    // Upload current trajectory to trajectory planner
                     trajectory_planner.LoadCurrentTrajectory(next_x_vals, next_y_vals);
-
-
 
 
                     vector<double> start_s, start_d;
                     vector<double> end_s, end_d;
 
-
-                    // The host vehicle is about to start
+                    // If the host vehicle is about to start
                     if (frame_index == 0) {
                         int n = 225;
 
@@ -262,27 +253,22 @@ int main() {
                      * In this case, we should use last point to predict
                      * end_path_s and end_path_d
                      *
+                     * By the way, we need to wait until the lane change done before next behavior
+                     *
                      * TODO: Another more efficient way is to save every start & end status!!!
                      *
                      */
 
 
-
-
                     else if (previous_path_size < kMinTrajectoryPtNum && host_vehicle.GetLane() == behavior_planner.GetTargetLane()) {
-
-                        std::cout << previous_path_size << std::endl;
-
+                        // collect sensor fusion results
                         vector<Vehicle> fusion_vehicles;
                         for (size_t i = 0; i < sensor_fusion.size(); i++) {
                             int fusion_id = sensor_fusion[i][0];
-
                             double fusion_vx = sensor_fusion[i][3];
                             double fusion_vy = sensor_fusion[i][4];
-
                             // mps, not mph!!!
                             double fusion_v = sqrt(fusion_vx * fusion_vx + fusion_vy * fusion_vy);
-
                             double fusion_s = sensor_fusion[i][5];
                             double fusion_d = sensor_fusion[i][6];
 
@@ -290,7 +276,7 @@ int main() {
                             fusion_vehicles.push_back(veh);
                         }
 
-                        behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles, frame_index);
+                        behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles);
                         behavior_planner.UpdateState();
 
                         double target_delta_s = behavior_planner.GetTargetDeltaS();
@@ -306,7 +292,8 @@ int main() {
                         start_d = host_vehicle.GetStateD();
                         end_d = {target_d, 0.0, 0.0};
 
-                        trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, kPredictionPtNum);
+                        int target_prediction_pt_num = behavior_planner.GetTargetPredictionPtNum();
+                        trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, target_prediction_pt_num);
                         host_vehicle.UpdateState(end_s, end_d);
 
                         //std::cout << "target_delta_s = " << target_delta_s << " target_vel = " << target_speed << std::endl;
@@ -328,8 +315,7 @@ int main() {
                      *  End Test
                      *
                      */
-
-                    // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+                    json msgJson;
                     msgJson["next_x"] = trajectory_planner.GetTrajectoryX();
                     msgJson["next_y"] = trajectory_planner.GetTrajectoryY();
 

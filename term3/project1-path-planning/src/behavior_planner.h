@@ -23,7 +23,7 @@ public:
      */
     virtual ~BehaviorPlanner();
 
-    void UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles, int frame_index);
+    void UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles);
     BehaviorState UpdateState();
 
     double GetTargetDeltaS() {
@@ -42,8 +42,8 @@ public:
         return target_speed_;
     }
 
-    int GetKeepLaneTime() {
-        return keep_lane_time_;
+    int GetTargetPredictionPtNum(){
+        return target_prediction_pt_num_;
     }
 
 private:
@@ -53,6 +53,7 @@ private:
     double target_delta_s_;
     double target_d_;
     double target_speed_;
+    int target_prediction_pt_num_;
 
     int target_lane_;
 
@@ -61,9 +62,6 @@ private:
 
     double lane_front_s_[kTotalLaneNum], lane_rear_s_[kTotalLaneNum];
     double lane_front_vel_[kTotalLaneNum], lane_rear_vel_[kTotalLaneNum];
-
-    int current_frame_index_;
-    int last_lane_change_frame_index_;
 
     int keep_lane_time_;
 

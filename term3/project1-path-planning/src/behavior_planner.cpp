@@ -33,10 +33,9 @@ BehaviorPlanner::BehaviorPlanner(){
 
 BehaviorPlanner::~BehaviorPlanner() {}
 
-void BehaviorPlanner::UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles, int frame_index) {
+void BehaviorPlanner::UpdateLocalization(const Vehicle &host_vehicle, const std::vector<Vehicle> &fusion_vehicles) {
     host_vehicle_ = host_vehicle;
     fusion_vehicles_ = fusion_vehicles;
-    current_frame_index_ = frame_index;
 }
 
 
@@ -87,14 +86,6 @@ void BehaviorPlanner::CalculateCost() {
     // change_left, keep_lane, change_right
     double cost_change_left, cost_keep_lane, cost_change_right;
 
-//    double cost_distance_left_lane_front;
-//    double cost_distance_left_lane_rear = exp(-(lane_rear_s_[0] - kSafetyDistance));
-//    double cost_distance_middle_lane_front = exp(-(lane_front_s_[1] - kSafetyDistance));
-//    double cost_distance_middle_lane_rear = exp(-(lane_rear_s_[1] - kSafetyDistance));
-//    double cost_distance_right_lane_front = exp(-(lane_front_s_[2] - kSafetyDistance));
-//    double cost_distance_right_lane_rear = exp(-(lane_rear_s_[2] - kSafetyDistance));
-
-
     // left FR - 0, 1; middle FR - 2, 3; right FR - 4, 5
     std::vector<double> cost_distance;
 
@@ -108,13 +99,11 @@ void BehaviorPlanner::CalculateCost() {
         cost_distance.push_back(cost_temp);
     }
 
-    double safety_velocity = kSpeedLimit - kSpeedBuffer;
+    double safety_velocity = kSpeedLimit; //- kSpeedBuffer;
     std::vector<double> cost_velocity;
 
     std::cout << "Middle front vel = " << lane_front_vel_[1] << std::endl;
     for (size_t i = 0; i < kTotalLaneNum; i++) {
-
-
         double cost_temp = exp(-(lane_front_vel_[i] - safety_velocity));
         cost_temp = cost_temp > 1 ? 1 : cost_temp;
         cost_velocity.push_back(cost_temp);
@@ -123,13 +112,6 @@ void BehaviorPlanner::CalculateCost() {
 
     switch (current_lane) {
         case LaneSegment::kLeftLane:
-//            // Left -> Out
-//            cost_change_left = kMaxCost;
-//            // Left -> Left
-//            cost_keep_lane = 1.0 / lane_front_s_[0] + 1.0 / lane_front_vel_[0];
-//            // Left -> Middle
-//            cost_change_right = (1.0 / lane_front_s_[1] + 0.4 / lane_rear_s_[1] + 1.0 / lane_front_vel_[1]) * kChangeLaneFactor * kMiddleLaneFactor;
-
             // Left -> Out
             cost_change_left = kMaxCost;
             // Left -> Left
@@ -142,17 +124,8 @@ void BehaviorPlanner::CalculateCost() {
                 cost_change_right = (cost_distance[2] + cost_distance[3] + cost_velocity[1]) * kChangeLaneFactor *
                                     kMiddleLaneFactor;
             }
-
-
             break;
         case LaneSegment::kMiddleLane:
-//            // Middle -> Left
-//            cost_change_left = (1.0 / lane_front_s_[0] + 0.4 / lane_rear_s_[0] + 1.0 / lane_front_vel_[0]) * kChangeLaneFactor;
-//            // Middle -> Middle
-//            cost_keep_lane = (1.0 / lane_front_s_[1] + 1.0 / lane_front_vel_[1])* kMiddleLaneFactor;
-//            // Middle -> Right
-//            cost_change_right = (1.0 / lane_front_s_[2] + 0.4 / lane_rear_s_[2] + 1.0 / lane_front_vel_[2]) * kChangeLaneFactor;
-
             // Middle -> Left
             if (lane_front_s_[0] <= kSafetyDistance || lane_rear_s_[0] <= kSafetyDistance) {
                 cost_change_left = kMaxCost;
@@ -169,16 +142,8 @@ void BehaviorPlanner::CalculateCost() {
             else {
                 cost_change_right = (cost_distance[4] + cost_distance[5] + cost_velocity[2]) * kChangeLaneFactor;
             }
-
             break;
         case LaneSegment::kRightLane:
-//            // Right -> Middle
-//            cost_change_left = (1.0 / lane_front_s_[1] + 0.4 / lane_rear_s_[1] + 1.0 / lane_front_vel_[1]) * kChangeLaneFactor * kMiddleLaneFactor;
-//            // Right -> Right
-//            cost_keep_lane = 1.0 / lane_front_s_[2] + 1.0 / lane_front_vel_[2];
-//            // Right -> Out
-//            cost_change_right = kMaxCost;
-
             // Right -> Middle
             if (lane_front_s_[1] <= kSafetyDistance || lane_rear_s_[1] <= kSafetyDistance) {
                 cost_change_left = kMaxCost;
@@ -191,7 +156,6 @@ void BehaviorPlanner::CalculateCost() {
             cost_keep_lane = cost_distance[4] + cost_velocity[2];
             // Right -> Out
             cost_change_right = kMaxCost;
-
             break;
         default:
             cost_change_left = kMaxCost;
@@ -212,22 +176,12 @@ void BehaviorPlanner::CalculateCost() {
 
     state_ = static_cast<BehaviorState>(min_index);
 
-//    std::cout << "current = " << current_frame_index_ << " last = " << last_lane_change_frame_index_ << std::endl;
-//
-//    if (current_frame_index_ - last_lane_change_frame_index_ <= kMinLaneChangeFrame && state_ != BehaviorState::kKeepLane) {
-//        std::cout << "Should not change lane too often!!!" << std::endl;
-//        state_ = BehaviorState::kKeepLane;
-//    }
-//
     if (state_ == BehaviorState::kKeepLane) {
         keep_lane_time_++;
     }
     else {
         keep_lane_time_ = 0;
     }
-
-
-
 }
 
 BehaviorState BehaviorPlanner::UpdateState() {
@@ -237,44 +191,63 @@ BehaviorState BehaviorPlanner::UpdateState() {
 
     CalculateCost();
 
-
-
-
     int lane = host_vehicle_.GetLane();
+
+    /**
+     *  Calculate
+     *  1. target_delta_s_
+     *  2. target_speed
+     *  3. target_d_
+     *  4. target_prediction_pt_num_
+     */
 
     switch (state_) {
         case BehaviorState::kChangeLeft:
             target_lane_ = lane - 1;
             target_d_ = kLaneD[target_lane_];
-            target_speed_ = kSpeedLimit;
+            // give more time for turning to avoid jerk
+            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit * 2;
+            target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
+            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
         case BehaviorState::kKeepLane:
+            target_lane_ = lane;
+            target_d_ = kLaneD[target_lane_];
             std::cout << "Front " << lane_front_s_[lane] << " Rear " << lane_rear_s_[lane] << std::endl;
             if (lane_front_s_[lane] >= kDistanceBuffer) {
                 target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit;
                 target_speed_ = kSpeedLimit;
+                //target_prediction_pt_num_ = kPredictionPtNum;
             } else {
                 std::cout << "Front_vel = " << lane_front_vel_[lane] << std::endl;
-                double distance = kTimeInterval * kPredictionPtNum * kSpeedLimit * 0.8;
-                target_delta_s_ = distance;
+                //double distance = kTimeInterval * kPredictionPtNum * kSpeedLimit * 0.8;
+                double distance = kTimeInterval * kPredictionPtNum * kSpeedLimit;
 
-                double speed = lane_front_vel_[lane] < kSpeedLimit ? lane_front_vel_[lane] : kSpeedLimit;
-                target_speed_ = speed - kSpeedBuffer;
+                target_delta_s_ = distance;
+                double speed = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
+                //target_speed_ = speed - kSpeedBuffer;
+                target_speed_ = speed;
+
             }
-            target_lane_ = lane;
-            target_d_ = kLaneD[target_lane_];
             break;
         case BehaviorState::kChangeRight:
             target_lane_ = lane + 1;
             target_d_ = kLaneD[target_lane_];
-            target_speed_ = kSpeedLimit;
+            // give more time for turning to avoid jerk
+            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit * 2;
+            target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
+            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
         default:
             target_lane_ = lane;
             target_d_ = kLaneD[target_lane_];
+            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit;
             target_speed_ = kSpeedLimit;
+            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
     }
+
+    target_prediction_pt_num_ = static_cast<int>(target_delta_s_ / (target_speed_ * kTimeInterval));
 
     std::cout << "Behavior = " << state_ << std::endl;
     std::cout << "Current Lane = " << lane << std::endl;

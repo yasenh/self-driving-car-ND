@@ -2,6 +2,7 @@
 // Created by projectx on 8/1/17.
 //
 
+#include <cmath>
 #include "vehicle.h"
 #include "utils.h"
 
@@ -24,6 +25,7 @@ void Vehicle::UpdatePositionVelocity(double s, double d, double vel) {
 
 void Vehicle::UpdateState(std::vector<double> state_s, std::vector<double> state_d) {
     state_s_ = state_s;
+    state_s_[0] = fmod(state_s_[0], kMapMaxS);
     state_d_ = state_d;
 }
 

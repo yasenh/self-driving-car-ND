@@ -2,6 +2,7 @@
 // Created by projectx on 8/3/17.
 //
 
+#include <iostream>
 #include "trajectory_planner.h"
 #include "utils.h"
 
@@ -82,8 +83,8 @@ void TrajectoryPlanner::UpdateTrajectory(std::vector<double> start_s, std::vecto
         double t4 = t3 * t;
         double t5 = t4 * t;
 
-
         double wp_s = jmt_s[0] + jmt_s[1] * t + jmt_s[2] * t2 + jmt_s[3] * t3 + jmt_s[4] * t4 + jmt_s[5] * t5;
+        wp_s = fmod(wp_s, kMapMaxS);
         double wp_d = jmt_d[0] + jmt_d[1] * t + jmt_d[2] * t2 + jmt_d[3] * t3 + jmt_d[4] * t4 + jmt_d[5] * t5;
 
         double wp_x = spline_sx_(wp_s);

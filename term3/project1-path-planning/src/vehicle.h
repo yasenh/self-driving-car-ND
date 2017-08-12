@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include "utils.h"
 
 class Vehicle {
 public:

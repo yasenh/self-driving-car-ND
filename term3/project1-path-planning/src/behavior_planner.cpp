@@ -201,59 +201,60 @@ BehaviorState BehaviorPlanner::UpdateState() {
      *  4. target_prediction_pt_num_
      */
 
+    double last_target_speed = target_speed_;
     switch (state_) {
         case BehaviorState::kChangeLeft:
             target_lane_ = lane - 1;
-            target_d_ = kLaneD[target_lane_];
             // give more time for turning to avoid jerk
-            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit * 2;
+            target_delta_s_ = kPredictionDistance * 2;
             target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
-            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
         case BehaviorState::kKeepLane:
             target_lane_ = lane;
-            target_d_ = kLaneD[target_lane_];
-            std::cout << "Front " << lane_front_s_[lane] << " Rear " << lane_rear_s_[lane] << std::endl;
             if (lane_front_s_[lane] >= kDistanceBuffer) {
-                target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit;
+                std::cout << "FRONT CLEAR" << std::endl;
+                target_delta_s_ = kPredictionDistance;
                 target_speed_ = kSpeedLimit;
-                //target_prediction_pt_num_ = kPredictionPtNum;
             } else {
-                std::cout << "Front_vel = " << lane_front_vel_[lane] << std::endl;
-                //double distance = kTimeInterval * kPredictionPtNum * kSpeedLimit * 0.8;
-                double distance = kTimeInterval * kPredictionPtNum * kSpeedLimit;
-
-                target_delta_s_ = distance;
-                double speed = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
-                //target_speed_ = speed - kSpeedBuffer;
-                target_speed_ = speed;
-
+                std::cout << "FRONT CAR WITHIN SAFETY DISTANCE" << std::endl;
+                target_delta_s_ = kPredictionDistance;
+                target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
+                target_speed_ = (target_speed_ + last_target_speed) / 2.0f;
             }
             break;
         case BehaviorState::kChangeRight:
             target_lane_ = lane + 1;
-            target_d_ = kLaneD[target_lane_];
             // give more time for turning to avoid jerk
-            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit * 2;
+            target_delta_s_ = kPredictionDistance * 2;
             target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
-            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
         default:
             target_lane_ = lane;
-            target_d_ = kLaneD[target_lane_];
-            target_delta_s_ = kTimeInterval * kPredictionPtNum * kSpeedLimit;
+            target_delta_s_ = kPredictionDistance;
             target_speed_ = kSpeedLimit;
-            //target_prediction_pt_num_ = kPredictionPtNum;
             break;
     }
-
+    target_d_ = kLaneD[target_lane_];
     target_prediction_pt_num_ = static_cast<int>(target_delta_s_ / (target_speed_ * kTimeInterval));
 
-    std::cout << "Behavior = " << state_ << std::endl;
-    std::cout << "Current Lane = " << lane << std::endl;
-    std::cout << "Target Lane = " << target_lane_ << std::endl;
+    std::cout << "Target / Last Target Speed = " << target_speed_ << " , " << last_target_speed << std::endl;
 
-//    std::cout << target_s_ << " , " << target_speed_ << std::endl;
+    double delta_speed = target_speed_ - last_target_speed;
 
+//    if (last_target_speed > kMinSpeed && delta_speed > kSpeedBuffer) {
+//        target_prediction_pt_num_ *= 2;
+//    }
+
+    if (last_target_speed > kMinSpeed) {
+        if (delta_speed > kSpeedBuffer) {
+            target_speed_ = last_target_speed + kSpeedBuffer;
+        } else if (delta_speed < -kSpeedBuffer) {
+            target_speed_ = last_target_speed - kSpeedBuffer;
+        }
+    }
+
+    std::cout << "Target / Last Target Speed = " << target_speed_ << " , " << last_target_speed << std::endl;
+    std::cout << "Pt Num = " << target_prediction_pt_num_ << std::endl;
+    //std::cout << "Behavior = " << state_ << std::endl;
 
 }

@@ -38,17 +38,20 @@ const double kSpeedLimit  = 19.0;
 const double kMinSpeed    = 15.0;
 const double kSpeedBuffer = 0.5;
 
-const double kPredictionDistance = kTimeInterval * kPredictionPtNum * kSpeedLimit;
+const double kPredictionDistance = kTimeInterval * kPredictionPtNum * kSpeedLimit; // 19.0
 
 const double kMaxDistance = 9999;
 const double kMaxSpeed = 9999;
 const double kMaxCost = 9999;
+const double kMinCost = 1.0;
 
 const double kChangeLaneFactor = 1.1;
 const double kMiddleLaneFactor = 0.9;
 
+const double kMaxPerceptionDistance = 80.0;
 const double kDistanceBuffer = 40.0;
 const double kSafetyDistance = 20.0;
+
 
 const int kMinLaneKeepingTime = 5;
 

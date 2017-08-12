@@ -73,6 +73,7 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
 
+    // add the max_s point to deal with multiple runs
     map_waypoints_x.push_back(map_waypoints_x[0]);
     map_waypoints_y.push_back(map_waypoints_y[0]);
     map_waypoints_s.push_back(kMapMaxS);
@@ -80,8 +81,11 @@ int main() {
     map_waypoints_dy.push_back(map_waypoints_dy[0]);
 
     int frame_index = 0;
+    // initialize host vehicle
     Vehicle host_vehicle(kHostVehicleId);
+    // initialize trajectory planner
     TrajectoryPlanner trajectory_planner(map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy, map_waypoints_s);
+    // initialize behavior planner
     BehaviorPlanner behavior_planner;
 
     h.onMessage([&host_vehicle, &trajectory_planner, &behavior_planner, &frame_index](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -101,9 +105,6 @@ int main() {
 
                 if (event == "telemetry") {
                     // j[1] is the data JSON object
-
-                    // Main car's localization Data
-
                     /**
                      * ["x"] The car's x position in map coordinates
                      * ["y"] The car's y position in map coordinates
@@ -139,7 +140,7 @@ int main() {
                     size_t previous_path_size = previous_path_x.size();
 
                     /**
-                     *  Start Test
+                     *  Start
                      */
                     vector<double> next_x_vals, next_y_vals;
                     next_x_vals = previous_path_x;
@@ -157,6 +158,7 @@ int main() {
 
                     // If the host vehicle is about to start
                     if (frame_index == 0) {
+                        // add more points to reduce jerk
                         int n = 225;
 
                         double target_s = host_vehicle.GetS() + 40.0;
@@ -183,7 +185,6 @@ int main() {
                      *
                      * By the way, we need to wait until the lane change done before next behavior
                      *
-                     *
                      */
 
                     else if (previous_path_size < kMinTrajectoryPtNum && host_vehicle.GetLane() == behavior_planner.GetTargetLane()) {
@@ -202,9 +203,12 @@ int main() {
                             fusion_vehicles.push_back(veh);
                         }
 
+                        // update all localization information for behavior planner
                         behavior_planner.UpdateLocalization(host_vehicle, fusion_vehicles);
+                        // make decision
                         behavior_planner.UpdateState();
 
+                        // follow behavior planner's decision
                         double target_delta_s = behavior_planner.GetTargetDeltaS();
                         double target_s = end_path_s + target_delta_s;
                         double target_speed = behavior_planner.GetTargetSpeed();
@@ -212,6 +216,7 @@ int main() {
                         start_s = host_vehicle.GetStateS();
                         end_s = {target_s, target_speed, 0.0};
 
+                        // if host vehicle runs more than 1 lap
                         if (start_s[0] > end_s[0]) {
                             end_s[0] += kMapMaxS;
                         }
@@ -221,26 +226,17 @@ int main() {
                         end_d = {target_d, 0.0, 0.0};
 
                         int target_prediction_pt_num = behavior_planner.GetTargetPredictionPtNum();
+
+                        // calculate trajectory
                         trajectory_planner.UpdateTrajectory(start_s, start_d, end_s, end_d, target_prediction_pt_num);
                         host_vehicle.UpdateState(end_s, end_d);
 
-
-                        std::cout << std::endl;
-                        std::cout << "start_s =" << start_s[0] << " , " << start_s[1] << " , " << start_s[2] << std::endl;
-                        std::cout << "end_s = " << end_s[0] << " , " << end_s[1] << " , " << end_s[2] << std::endl;
-
+                        std::cout << "Host_s = " << host_vehicle.GetS() << std::endl;
+                        std::cout << "***************************************" << std::endl;
                     }
 
-
-                    std::cout<<std::endl;
-                    std::cout << "HOST_VEH_S = " << host_vehicle.GetS() << std::endl;
-                    std::cout << "***************************************" << std::endl;
-
-
-
                     /**
-                     *  End Test
-                     *
+                     *  End
                      */
                     json msgJson;
                     msgJson["next_x"] = trajectory_planner.GetTrajectoryX();

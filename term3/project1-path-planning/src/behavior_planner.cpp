@@ -12,10 +12,8 @@
  * 2. Prepare for lane chang left/right
  * 3. Change lane left/right
  *
- *
  */
 
-// TODO: think about keep lane in middle ASAP
 
 /**
  * The data that we need to pass to our transition functions as input:
@@ -72,14 +70,18 @@ void BehaviorPlanner::GetClosestVehicle(LaneSegment lane, double &distance_front
 void BehaviorPlanner::CalculateCost() {
 
     std::cout << "Lane Keep Time = " << keep_lane_time_ << std::endl;
-    if (keep_lane_time_ < kMinLaneKeepingTime) {
+
+    int current_lane = host_vehicle_.GetLane();
+
+    /**
+     *  1. We don't want the vehicle change back and forth too frequently
+     *  2. We need to ensure the safety
+     */
+    if (keep_lane_time_ < kMinLaneKeepingTime && lane_front_s_[current_lane] >= kSafetyDistance) {
         state_ = BehaviorState::kKeepLane;
         keep_lane_time_++;
         return;
     }
-
-
-    int current_lane = host_vehicle_.GetLane();
 
     std::vector<double> cost;
 
@@ -88,28 +90,39 @@ void BehaviorPlanner::CalculateCost() {
 
     // left FR - 0, 1; middle FR - 2, 3; right FR - 4, 5
     std::vector<double> cost_distance;
-
-    for (size_t i = 0; i < kTotalLaneNum; i++) {
-        double cost_temp = exp(-(lane_front_s_[i] - kSafetyDistance));
-        cost_temp = cost_temp > 2 ? 2 : cost_temp;
-        cost_distance.push_back(cost_temp);
-
-        cost_temp = 0.4 * exp(-(lane_rear_s_[i] - kSafetyDistance));
-        cost_temp = cost_temp > 1 ? 1 : cost_temp;
-        cost_distance.push_back(cost_temp);
-    }
-
-    double safety_velocity = kSpeedLimit; //- kSpeedBuffer;
     std::vector<double> cost_velocity;
 
-    std::cout << "Middle front vel = " << lane_front_vel_[1] << std::endl;
+    // TODO: global optimization, thinking about all 3 lanes rather than adjacent lane only
+
+    // calculate cost function
     for (size_t i = 0; i < kTotalLaneNum; i++) {
-        double cost_temp = exp(-(lane_front_vel_[i] - safety_velocity));
-        cost_temp = cost_temp > 1 ? 1 : cost_temp;
-        cost_velocity.push_back(cost_temp);
+        double cost_temp;
+        // if the vehicle in front/rear is too far away, we can ignore it
+        if (lane_front_s_[i] < kMaxPerceptionDistance) {
+            cost_temp = exp(-(lane_front_s_[i] - kSafetyDistance));
+            cost_temp = cost_temp > 10 ? 10 : cost_temp;
+            cost_distance.push_back(cost_temp + kMinCost);
+
+            cost_temp = exp(-(lane_front_vel_[i] - kSpeedLimit));
+            cost_temp = cost_temp > 10 ? 10 : cost_temp;
+            cost_velocity.push_back(cost_temp);
+        }
+        else {
+            cost_distance.push_back(kMinCost);
+            cost_velocity.push_back(0);
+        }
+
+        if (lane_rear_s_[i] < kMaxPerceptionDistance) {
+            cost_temp = 0.4 * exp(-(lane_rear_s_[i] - kSafetyDistance));
+            cost_temp = cost_temp > 1 ? 1 : cost_temp;
+            cost_distance.push_back(cost_temp);
+        }
+        else {
+            cost_distance.push_back(0);
+        }
     }
 
-
+    // calculate all cost (distance, velocity, etc..)
     switch (current_lane) {
         case LaneSegment::kLeftLane:
             // Left -> Out
@@ -170,10 +183,9 @@ void BehaviorPlanner::CalculateCost() {
     cost.push_back(cost_change_right);
 
     std::cout << "Left = " << cost[0] << " Keep = " << cost[1] << " Right = " << cost[2] << std::endl;
+    // find minimal cost in order to choose next behavior
     std::vector<double>::iterator result = std::min_element(std::begin(cost), std::end(cost));
     auto min_index = std::distance(std::begin(cost), result);
-//    std::cout << "min element at: " << min_index << " cost = " << cost[min_index] << std::endl;
-
     state_ = static_cast<BehaviorState>(min_index);
 
     if (state_ == BehaviorState::kKeepLane) {
@@ -196,7 +208,7 @@ BehaviorState BehaviorPlanner::UpdateState() {
     /**
      *  Calculate
      *  1. target_delta_s_
-     *  2. target_speed
+     *  2. target_speed_
      *  3. target_d_
      *  4. target_prediction_pt_num_
      */
@@ -217,7 +229,7 @@ BehaviorState BehaviorPlanner::UpdateState() {
                 target_speed_ = kSpeedLimit;
             } else {
                 std::cout << "FRONT CAR WITHIN SAFETY DISTANCE" << std::endl;
-                target_delta_s_ = kPredictionDistance;
+                target_delta_s_ = kPredictionDistance * 1.5;
                 target_speed_ = lane_front_vel_[target_lane_] > kSpeedLimit ? kSpeedLimit : lane_front_vel_[target_lane_];
                 target_speed_ = (target_speed_ + last_target_speed) / 2.0f;
             }
@@ -234,17 +246,9 @@ BehaviorState BehaviorPlanner::UpdateState() {
             target_speed_ = kSpeedLimit;
             break;
     }
-    target_d_ = kLaneD[target_lane_];
-    target_prediction_pt_num_ = static_cast<int>(target_delta_s_ / (target_speed_ * kTimeInterval));
 
-    std::cout << "Target / Last Target Speed = " << target_speed_ << " , " << last_target_speed << std::endl;
-
+    // we don't want the vehicle change too much in short time
     double delta_speed = target_speed_ - last_target_speed;
-
-//    if (last_target_speed > kMinSpeed && delta_speed > kSpeedBuffer) {
-//        target_prediction_pt_num_ *= 2;
-//    }
-
     if (last_target_speed > kMinSpeed) {
         if (delta_speed > kSpeedBuffer) {
             target_speed_ = last_target_speed + kSpeedBuffer;
@@ -253,8 +257,9 @@ BehaviorState BehaviorPlanner::UpdateState() {
         }
     }
 
-    std::cout << "Target / Last Target Speed = " << target_speed_ << " , " << last_target_speed << std::endl;
-    std::cout << "Pt Num = " << target_prediction_pt_num_ << std::endl;
+    target_d_ = kLaneD[target_lane_];
+    target_prediction_pt_num_ = static_cast<int>(target_delta_s_ / (target_speed_ * kTimeInterval));
+
     //std::cout << "Behavior = " << state_ << std::endl;
 
 }

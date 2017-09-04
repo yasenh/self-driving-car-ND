@@ -1,0 +1,2 @@
+styx:styx_msgs:tl_detector:twist_controller:waypoint_follower:waypoint_loader:waypoint_updater
+-DCATKIN_DEVEL_PREFIX=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel -DCMAKE_INSTALL_PREFIX=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/install -G Unix Makefiles

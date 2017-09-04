@@ -1,0 +1,8 @@
+prefix=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel
+
+Name: waypoint_loader
+Description: Description of waypoint_loader
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel/lib 
+Requires: 

@@ -1,0 +1,8 @@
+prefix=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel
+
+Name: styx_msgs
+Description: Description of styx_msgs
+Version: 0.0.0
+Cflags: -I/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel/include
+Libs: -L/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel/lib 
+Requires: 

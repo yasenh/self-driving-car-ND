@@ -1,0 +1,8 @@
+prefix=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/install
+
+Name: styx
+Description: Description of styx
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/install/lib 
+Requires: 

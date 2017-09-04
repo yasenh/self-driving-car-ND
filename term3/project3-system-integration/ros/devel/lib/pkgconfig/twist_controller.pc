@@ -1,0 +1,8 @@
+prefix=/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel
+
+Name: twist_controller
+Description: Description of twist_controller
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/projectx/blackberry/self-driving-car-ND/term3/project3-system-integration/ros/devel/lib 
+Requires: 

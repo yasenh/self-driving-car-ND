@@ -1,5 +1,7 @@
 from attrdict import AttrDict
 
+# z: 5.83717
+
 config = AttrDict({
     'camera_info': {
       'focal_length_x':0.97428,
@@ -18,3 +20,5 @@ config = AttrDict({
         (351.84, 1574.65)
     ]
 })
+
+

@@ -12,7 +12,6 @@ import cv2
 from traffic_light_config import config
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -230,7 +229,7 @@ class TLDetector(object):
         x = int((fx * point_in_camera_coordinates[0] * point_in_camera_coordinates[2]) + (image_width / 2))
         y = int((fy * point_in_camera_coordinates[1] * point_in_camera_coordinates[2]) + (image_height / 2))
 
-        print (x, y)
+        # print (x, y)
 
         x_offset = 150
         y_offset = 100
@@ -267,19 +266,19 @@ class TLDetector(object):
 
                 pt = roi[i[1], i[0]]
 
-                print pt
+                # print pt
 
                 # bgr
                 if pt[1] >= 200 and pt[2] >=200:
-                    print "YELLOW!!!!"
+                    # print "YELLOW!!!!"
                     cv2.putText(cv_image2, 'YELLOW', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     continue
                 if pt[2] >= 200:
-                    print "RED!!!!"
+                    # print "RED!!!!"
                     cv2.putText(cv_image2, 'RED', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     continue
                 if pt[1] >= 200:
-                    print "GREEN!!!!"
+                    # print "GREEN!!!!"
                     cv2.putText(cv_image2, 'GREEN', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     continue
 
@@ -296,9 +295,9 @@ class TLDetector(object):
         #
         # plt.show()
 
-        cv2.imshow('Projection', cv_image2)
-        cv2.imshow('ROI', roi)
-        cv2.waitKey(1)
+        #cv2.imshow('Projection', cv_image2)
+        #cv2.imshow('ROI', roi)
+        #cv2.waitKey(1)
 
 
         return x, y
